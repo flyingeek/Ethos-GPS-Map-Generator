@@ -12,7 +12,6 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f0f0f; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 10px 5px; margin: 0; min-width: 1000px; }
         .header { width: 980px; display: flex; align-items: center; justify-content: flex-start; gap: 15px; padding-top: 20px; margin-bottom: 5px; }
         .logo-container img { height: 75px; display: block; }
-        /* HEADER TITLE: Shifted 1px right again to -6px */
         .header-title { margin: -10px 0 0 -6px; color: #87b025; font-size: 30px; font-weight: 700; text-transform: uppercase; line-height: 1; }
         
         .ui-panel { background: #1e1e1e; padding: 10px 15px; border-radius: 8px; margin: 5px 0; border: 1px solid #333; width: 950px; display: flex; flex-direction: column; gap: 8px; }
@@ -160,20 +159,39 @@
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        function updateCoordsDisplay(center) {
-            let coordText = `Lat: ${center.lat.toFixed(6)}, Lng: ${center.lng.toFixed(6)}`;
+        // FIXED: Now updates live on mouse move, but preserves HUD logic when measuring
+        function updateCoordsDisplay(targetPos) {
+            const mapCenter = map.getCenter();
+            let displayLat = targetPos.lat;
+            let displayLng = targetPos.lng;
+            
+            let coordText = `Lat: ${displayLat.toFixed(6)}, Lng: ${displayLng.toFixed(6)}`;
             const hud = document.getElementById('hud-measure');
+
             if (measureStart) {
-                const distM = calculateDistance(measureStart.lat, measureStart.lng, center.lat, center.lng);
+                // When measuring, the bar shows distance from Center-to-Center
+                const distM = calculateDistance(measureStart.lat, measureStart.lng, mapCenter.lat, mapCenter.lng);
                 const distStr = `${distM.toFixed(1)}m / ${(distM * 3.28084).toFixed(0)}ft`;
                 hud.innerHTML = distStr;
-                coordText = `📏 ${distStr} | ` + coordText;
-                measureLine.setLatLngs([measureStart, center]);
+                coordText = `📏 ${distStr} | Lat: ${mapCenter.lat.toFixed(6)}, Lng: ${mapCenter.lng.toFixed(6)}`;
+                measureLine.setLatLngs([measureStart, mapCenter]);
             }
+            
             document.getElementById('mouse-coords').innerHTML = coordText;
         }
 
-        map.on('move', () => updateCoordsDisplay(map.getCenter()));
+        // Listen for mouse move for live telemetry
+        map.on('mousemove', (e) => {
+            if (!measureStart) {
+                updateCoordsDisplay(e.latlng);
+            }
+        });
+
+        // Listen for map move to update bounds and HUD
+        map.on('move', () => {
+            updateBounds();
+            updateCoordsDisplay(map.getCenter());
+        });
 
         L.Control.geocoder({ defaultMarkGeocode: false, position: 'topleft', placeholder: "SEARCH",
             geocoder: L.Control.Geocoder.nominatim({ serviceUrl: 'https://nominatim.openstreetmap.org/' })
@@ -242,7 +260,7 @@
             document.getElementById('latNorth').innerText = b.getNorth().toFixed(8); document.getElementById('latSouth').innerText = b.getSouth().toFixed(8);
             document.getElementById('lngWest').innerText = b.getWest().toFixed(8); document.getElementById('lngEast').innerText = b.getEast().toFixed(8);
         }
-        map.on('moveend', updateBounds); updateBounds();
+        updateBounds();
 
         function toDMS(decimal, isLat) {
             const absolute = Math.abs(decimal); const degrees = Math.floor(absolute);
@@ -254,6 +272,7 @@
         function getFileName(ext) {
             const base = document.getElementById('mapTitle').value.trim().replace(/[^a-z0-9]/gi, '_');
             const now = new Date(); const ts = now.toISOString().split('T')[0] + "_" + now.getHours().toString().padStart(2, '0') + "-" + now.getMinutes().toString().padStart(2, '0');
+            if (ext === ".bmp") return base.substring(0, 11) + ext;
             return `${base}_Z${map.getZoom()}_${ts}${ext}`;
         }
 
