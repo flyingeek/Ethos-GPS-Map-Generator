@@ -56,17 +56,50 @@ The generated _metadata.txt is structured for the following requirement:
 8.  **Finalize (when exported via Suite-button):**
     * Open **Ethos Suite** and use the **Image Manager** to transcode the BMP to the radio's native 16-bit format.
     * Use the values in the generated `_metadata.txt` to configure your GPS widget fields on the radio.
+
+---
+
+### ⚠️ Important: Understanding the File Formats
+When you export your files, you will notice differences in how they appear depending on where you open them:
+
+**🗺️ The Map Image (.bmp)**
+
+* **On the Radio:** If you used **Direct (16-bit)**, the map will look perfect, crisp, and colorful on your Ethos screen.
+
+* **On Desktop/PC: Direct (16-bit)**: Will likely look like a **"Green Storm"** or have strange purple/green distortion. **This is normal**. Desktop photo viewers do not natively support the 16-bit R5-G6-B5 format used by FrSky hardware. Do not try to "fix" the colors on your PC; it is already perfect for your radio.
+
+* **Suite (24-bit):** Will look like a normal satellite photo on your PC. Use this version only if you plan to process it through the Ethos Suite Image Manager.
+
+**📄 The Metadata File (_metadata.txt)**
+
+* **Purpose:** This is your "Cheat Sheet" for the radio settings.
+
+* **How to Use:** Open this file on your PC and keep it visible while you are on your Radio's **GPS Widget Settings page.**
+
+* **Entry:** Manually enter the **DMS (Degrees, Minutes, Seconds)** values into the corresponding North, South, East, and West fields in the widget.
+
+**🛰️ Final Verification Checklist**
+
+* **Sync:** Ensure the **.bmp is in /bitmaps/GPS** and the **.txt is in /documents/user.**
+
+* **Widget:** Select your map in the GPS widget on the radio.
+
+* **Accuracy:** If your "Home" icon doesn't match your physical location, double-check that you didn't swap the North/South or East/West values when typing them into the radio.
   
-Setting coordinates in GPS Map Widget:
+#### Setting coordinates in GPS Map Widget:
 
 ![Coordinates_Ethos](https://github.com/user-attachments/assets/35171816-a20f-4991-b2a8-8ef600715bb8)
 
-Еxample of accuracy:
+#### Еxample of accuracy:
 
 ![Map_accuracy](https://github.com/user-attachments/assets/5ec89c74-d227-4e19-910d-f94d4404befb)
 
-Metadata file reading from RADIO:/documents/user
+#### Metadata file reading from RADIO:/documents/user
 
 ![File manager](https://github.com/user-attachments/assets/14256bb3-ecc8-41fa-9f13-2e8cc469b153)
 
 ![TXT document reading from the radio](https://github.com/user-attachments/assets/ee8009ff-7dd1-4cce-8790-ab8a2c7e3ae2)
+
+#### An example of the "Green Storm" overlay in a 16-bit BMP file (a Direct export of the map image intended for use in the radio), loaded onto the desktop::
+
+<img width="784" height="480" alt="Image" src="https://github.com/user-attachments/assets/4bb7b0d8-810c-4eae-ae5b-1290fba7fc29" />
