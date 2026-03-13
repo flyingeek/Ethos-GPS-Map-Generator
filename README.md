@@ -56,6 +56,8 @@ The generated _metadata.txt is structured for the following requirement:
 8.  **Finalize (when exported via Suite-button):**
     * Open **Ethos Suite** and use the **Image Manager** to transcode the BMP to the radio's native 16-bit format.
     * Use the values in the generated `_metadata.txt` to configure your GPS widget fields on the radio.
+  
+Setting coordinates in GPS Map Widget:
 
 ![Coordinates_Ethos](https://github.com/user-attachments/assets/35171816-a20f-4991-b2a8-8ef600715bb8)
 
@@ -63,8 +65,8 @@ The generated _metadata.txt is structured for the following requirement:
 
 ![Map_accuracy](https://github.com/user-attachments/assets/5ec89c74-d227-4e19-910d-f94d4404befb)
 
+Metadata file reading from RADIO:/documents/user
+
 ![File manager](https://github.com/user-attachments/assets/14256bb3-ecc8-41fa-9f13-2e8cc469b153)
 
 ![TXT document reading from the radio](https://github.com/user-attachments/assets/ee8009ff-7dd1-4cce-8790-ab8a2c7e3ae2)
-
-
