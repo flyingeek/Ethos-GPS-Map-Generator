@@ -48,7 +48,7 @@ The Ethos GPS Map Generator is a high-precision, web-based tool designed to crea
 
 ### 3. Configure Resolution
 * Select your radio model from the **Resolution** dropdown. **The presets in the list are for Fullscreen widget layout.**
-* If using a different (or custom) layout, select **Custom** and enter your specific pixel width and height for the widget size you will be using. Also, you can use the provided Lua tool if you need to verify your screen space.
+* If using a different (or custom) layout, select **Custom** and enter your specific pixel width and height for the widget size you will be using. Also, you can use the provided [Ethos Widget Size Check Lua](https://github.com/MartinovEm/Ethos-Widget-Size-Check) if you need to verify your screen space.
 
 ### 4. Precision Alignment
 * Center the crosshair over the middle of your flying area.
@@ -124,3 +124,12 @@ When you export your files, you will notice differences in how they appear depen
 #### An example of the "Green Storm" overlay in a 16-bit BMP file (a Direct export of the map image intended for use in the radio), loaded onto the desktop::
 
 <img width="784" height="480" alt="Image" src="https://github.com/user-attachments/assets/4bb7b0d8-810c-4eae-ae5b-1290fba7fc29" />
+
+---
+
+### ⚠️ Important: Full Screen vs. Top/Bottom bar screen size
+Do not confuse Full Screen widget with the one that has top/bottom bars, despite in **New creen** menu they look the same. Only the one labeled Full Screen has true full screen widged size.
+
+<img width="1431" height="512" alt="fullscreen" src="https://github.com/user-attachments/assets/10c56d28-9fdc-4a17-83c9-b7d89186e164" />
+
+---
