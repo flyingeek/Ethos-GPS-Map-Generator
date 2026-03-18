@@ -26,7 +26,6 @@
 
         .leaflet-control-zoom.leaflet-bar { display: flex !important; flex-direction: column !important; }
 
-        /* RESTORED: Export Guide Styling */
         .info-box { width: 150px; background: #111; border: 1px solid #333; border-radius: 6px; padding: 12px; font-size: 0.75em; line-height: 1.4; color: #bbb; }
         .info-box h4 { margin: 0 0 8px 0; color: #87b025; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; border-bottom: 1px solid #333; padding-bottom: 4px; }
         .info-item { margin-bottom: 10px; }
@@ -62,7 +61,6 @@
         .sidebar-link { color: #87b025; text-decoration: none; font-weight: bold; font-size: 11px; }
         .sidebar-link:hover { text-decoration: underline; }
 
-        /* RESTORED: Searchbox Theme */
         .leaflet-control-geocoder { background: #333 !important; border: 2px solid #87b025 !important; }
         .leaflet-control-geocoder-icon { filter: invert(1); }
         .leaflet-control-geocoder-form input { color: #ffffff !important; background: #333 !important; font-size: 14px !important; height: 26px !important; }
@@ -234,7 +232,7 @@
         function toDMS(decimal, isLat) {
             const absolute = Math.abs(decimal); const degrees = Math.floor(absolute);
             const minutes = Math.floor((absolute - degrees) * 60);
-            const seconds = (((absolute - degrees) * 60 - minutes) * 60).toFixed(2);
+            const seconds = (((absolute - degrees) * 60 - minutes) * 60).toFixed(1);
             return `${degrees}° ${minutes}' ${seconds}" ${isLat ? (decimal >= 0 ? "N" : "S") : (decimal >= 0 ? "E" : "W")}`;
         }
 
