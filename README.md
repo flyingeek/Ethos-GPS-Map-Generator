@@ -46,6 +46,8 @@ The Ethos GPS Map Generator is a high-precision, web-based tool designed to crea
 3. **Run**: Simply double-click the `index.html` file to open the generator in your web browser.
    * *Note: A Chromium-based browser (Chrome or Edge) is required for the "Link SD Card" feature to function.*
 
+**Or use it online:** [https://martinovem.github.io/Ethos-GPS-Map-Generator/](https://martinovem.github.io/Ethos-GPS-Map-Generator/)
+
 ### 2. Locate Your Flying Site
 * **Search**: Use the search box in the top-left of the map to find your location by name or coordinates.
 * **Map Type**: Switch between **Google Hybrid**, **Satellite**, or **Terrain** views to best suit your visibility needs.
