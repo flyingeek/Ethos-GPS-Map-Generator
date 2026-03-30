@@ -47,10 +47,8 @@
         .btn-group { display: flex; gap: 6px; }
         button { padding: 8px 12px; cursor: pointer; border: none; border-radius: 4px; font-weight: bold; transition: 0.2s; display: flex; align-items: center; gap: 5px; font-size: 11px; }
         .btn-link { background: #e67e22; color: #fff; border: 1px solid #d35400; width: 130px; justify-content: center; }
-        .btn-meta { background: #333; color: #fff; border: 1px solid #555; }
-        .btn-16 { background: #333; color: #87b025; border: 1px solid #87b025; }
-        .btn-24 { background: #333; color: #3498db; border: 1px solid #3498db; }
-        .btn-all { background: #87b025; color: #ffffff; border: 1px solid #87b025; }
+        .btn-sync { background: #87b025; color: #ffffff; border: 1px solid #87b025; width: 140px; justify-content: center; }
+        .btn-zip { background: #333; color: #e67e22; border: 1px solid #e67e22; width: 140px; justify-content: center; }
         .linked { background: #27ae60 !important; border-color: #2ecc71 !important; }
 
         .zoom-lock-container { display: flex; align-items: center; gap: 8px; background: #111; padding: 0 10px; border-radius: 4px; border: 1px solid #444; height: 34px; }
@@ -92,10 +90,8 @@
             <div class="zoom-lock-container"><input type="checkbox" id="zoomLock" onchange="toggleZoomLock()"><label for="zoomLock" style="font-size:12px; font-weight:bold; color:#ccc; cursor:pointer;">Zoom Lock</label></div>
             <div class="btn-group">
                 <button class="btn-link" id="linkBtn" onclick="linkSDCard()">🔗 Link SD Card</button>
-                <button class="btn-meta" onclick="handleMeta()">📄 Meta</button>
-                <button class="btn-16" onclick="handleDirect()">💾 Direct</button>
-                <button class="btn-24" onclick="exportBMP(24)">💾 Suite</button>
-                <button class="btn-all" onclick="handleExtractAll()">⚡ Extract All</button>
+                <button class="btn-sync" id="syncBtn" onclick="handleSync()">⚡ Sync To SD</button>
+                <button class="btn-zip" onclick="handleDownloadZip()">📦 Download ZIP</button>
             </div>
         </div>
 
@@ -136,17 +132,16 @@
         </div>
         <div class="info-box">
             <h4>Export Guide</h4>
-            <div class="info-item"><b>Meta:</b> Configuration text file for the GPS widget settings.</div>
-            <div class="info-item"><b>Direct:</b> 16-bit BMP + JSON coordinates. Saved as Title.bmp + Title.json to Radio.</div>
-            <div class="info-item"><b>Suite:</b> 24-bit BMP. Best for Ethos Suite processing.</div>
-            <div class="info-item"><b>Extract All:</b> Syncs Meta + 16-bit BMP + JSON in one click.</div>
-            <div class="info-item" style="border-top: 1px solid #333; padding-top: 5px;"><b>Link SD Card:</b> Syncs files directly to Radio Folders.</div>
+            <div class="info-item"><b>Sync To SD:</b> Writes BMP, JSON & metadata directly to Radio SD card folders. Links SD if not connected.</div>
+            <div class="info-item"><b>Download ZIP:</b> Downloads BMP, JSON & metadata as a ZIP file. Manually place BMP in <i>bitmaps/GPS/</i> and JSON + metadata in <i>documents/user/</i> on the Radio SD card.</div>
+            <div class="info-item" style="border-top: 1px solid #333; padding-top: 5px;"><b>Link SD Card:</b> Select your Radio's SD card root folder.</div>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <script>
         const map = L.map('map', { zoomControl: true }).setView([42.6977, 23.3219], 12);
@@ -283,24 +278,31 @@ Zoom Level: ${map.getZoom()}`], { type: 'text/plain' });
             if (measureLine) measureLine.setStyle({opacity: 0});
             const mapEl = document.getElementById('map');
             const originalStyle = mapEl.getAttribute('style');
+            const savedCenter = map.getCenter();
+            const savedZoom = map.getZoom();
             mapEl.style.width = (w + 10) + 'px'; mapEl.style.height = (h + 10) + 'px';
             map.invalidateSize(false);
+            map.setView(savedCenter, savedZoom, { animate: false });
             await new Promise(r => setTimeout(r, 150));
             const rawCanvas = await html2canvas(mapEl, { useCORS: true, width: w + 10, height: h + 10, scale: 1, backgroundColor: '#000000' });
             mapEl.setAttribute('style', originalStyle); map.invalidateSize(false);
+            map.setView(savedCenter, savedZoom, { animate: false });
             hud.forEach(el => { if (el.id === 'hud-measure' && !measureStart) return; el.style.display = 'flex'; el.style.visibility = 'visible'; el.style.opacity = '1'; });
             if (measureLine) measureLine.setStyle({opacity: 1});
             const finalCanvas = document.createElement('canvas'); finalCanvas.width = w; finalCanvas.height = h;
             const finalCtx = finalCanvas.getContext('2d'); finalCtx.drawImage(rawCanvas, 2, 2, w, h, 0, 0, w, h);
             const imgData = finalCtx.getImageData(0, 0, w, h).data;
             const bytesPerPixel = (depth === 16) ? 2 : 3;
+            const headerSize = (depth === 16) ? 66 : 54;
             const padding = (4 - (w * bytesPerPixel) % 4) % 4;
-            const fileSize = 54 + (w * bytesPerPixel + padding) * h;
+            const fileSize = headerSize + (w * bytesPerPixel + padding) * h;
             const buffer = new ArrayBuffer(fileSize), view = new DataView(buffer);
-            view.setUint16(0, 0x424D, false); view.setUint32(2, fileSize, true); view.setUint32(10, 54, true);
+            view.setUint16(0, 0x424D, false); view.setUint32(2, fileSize, true); view.setUint32(10, headerSize, true);
             view.setUint32(14, 40, true); view.setInt32(18, w, true); view.setInt32(22, h, true);
-            view.setUint16(26, 1, true); view.setUint16(28, depth, true); view.setUint32(30, 0, true);
-            let offset = 54;
+            view.setUint16(26, 1, true); view.setUint16(28, depth, true);
+            view.setUint32(30, (depth === 16) ? 3 : 0, true);
+            if (depth === 16) { view.setUint32(54, 0xF800, true); view.setUint32(58, 0x07E0, true); view.setUint32(62, 0x001F, true); }
+            let offset = headerSize;
             for (let y = h - 1; y >= 0; y--) {
                 for (let x = 0; x < w; x++) {
                     const i = (y * w + x) * 4;
@@ -354,32 +356,32 @@ Zoom Level: ${map.getZoom()}`], { type: 'text/plain' });
             }, null, 2)], { type: 'application/json' });
         }
 
-        async function handleDirect() {
+        async function handleSync() {
+            if (!sdHandle) { await linkSDCard(); if (!sdHandle) return; }
             const baseName = document.getElementById('mapTitle').value.trim().replace(/[^a-z0-9]/gi, '_');
             const bmpBlob = await createBMPBlob(16);
             const jsonBlob = createJsonBlob();
-            if (sdHandle) {
-                const bmpOk = await saveToSD(bmpBlob, "bitmaps/GPS", baseName + ".bmp");
-                const jsonOk = await saveToSD(jsonBlob, "documents/user", baseName + ".json");
-                if (bmpOk && jsonOk) return;
-            }
-            downloadFile(bmpBlob, baseName + ".bmp");
-            downloadFile(jsonBlob, baseName + ".json");
+            const metaBlob = createMetadataBlob();
+            const metaName = baseName + '_metadata.txt';
+            const bmpOk = await saveToSD(bmpBlob, 'bitmaps/GPS', baseName + '.bmp');
+            const jsonOk = await saveToSD(jsonBlob, 'documents/user', baseName + '.json');
+            const metaOk = await saveToSD(metaBlob, 'documents/user', metaName);
+            const btn = document.getElementById('syncBtn');
+            if (bmpOk && jsonOk && metaOk) { btn.innerText = '✅ Synced!'; setTimeout(() => { btn.innerText = '⚡ Sync To SD'; }, 2000); }
         }
 
-        async function handleMeta() {
-            const blob = createMetadataBlob(); const name = getFileName("_metadata.txt");
-            if (sdHandle) { if (await saveToSD(blob, "documents/user", name)) return; }
-            downloadFile(blob, name);
+        async function handleDownloadZip() {
+            const baseName = document.getElementById('mapTitle').value.trim().replace(/[^a-z0-9]/gi, '_');
+            const bmpBlob = await createBMPBlob(16);
+            const jsonBlob = createJsonBlob();
+            const metaBlob = createMetadataBlob();
+            const zip = new JSZip();
+            zip.file(baseName + '.bmp', bmpBlob);
+            zip.file(baseName + '.json', jsonBlob);
+            zip.file(baseName + '_metadata.txt', metaBlob);
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            downloadFile(zipBlob, baseName + '.zip');
         }
-
-        async function exportBMP(depth) {
-            const blob = await createBMPBlob(depth);
-            const name = getFileName(".bmp");
-            downloadFile(blob, name);
-        }
-
-        async function handleExtractAll() { await handleMeta(); setTimeout(async () => { await handleDirect(); }, 800); }
 
         function downloadFile(blob, filename) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); }
 

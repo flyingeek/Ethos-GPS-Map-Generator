@@ -23,10 +23,9 @@ The Ethos GPS Map Generator is a high-precision, web-based tool designed to crea
     * **Terrain**: Highlights physical features and elevation, useful for slope soaring and mountain flying sites.
 * **Synchronized File Naming**: The tool automatically ensures that the metadata file and the image file share the **exact same prefix**. This is critical for both GPS AccuMap and the built-in Ethos GPS Map widget to recognize and pair the data with the correct image.
 * **Offline Field Mobility**: By saving the metadata directly onto the radio, you can switch between different maps and instantly view the coordinates and boundaries of the new map — especially useful for GPS AccuMap, which reads them automatically.
-* **Advanced Export Options**:
-    * **💾 Direct**: Generates an optimized 16-bit BMP. This is the native format for Ethos radios, designed for direct use on the SD card (required for both widgets).
-    * **💾 Suite**: Generates a high-quality 24-bit BMP, ideal for users who prefer to process their images through the Ethos Suite desktop application.
-    * **⚡ Extract All**: A one-click productivity feature that simultaneously generates and saves both the metadata and the 16-bit Direct BMP on your radio (SD card).
+* **Streamlined Export**:
+    * **⚡ Sync To SD**: One-click sync of the 16-bit BMP, JSON coordinates, and metadata directly to your radio's SD card folders. If no SD card is linked, it automatically prompts you to connect one.
+    * **📦 Download ZIP**: Downloads all three files (BMP, JSON, metadata) bundled in a ZIP for manual placement on the radio.
 * **Precision Telemetry Engine**: Automatically generates coordinate metadata with high-accuracy decimal and DMS (Degrees, Minutes, Seconds) boundaries. GPS AccuMap reads these automatically; the built-in Ethos GPS Map widget requires manual entry.
 * **Adaptive Resolution System**:
     * **Presets**: Quick-toggle options for standard full-screen radio resolutions (800x480 for most of X20/X18 series, and 480x320 for some of X18).
@@ -79,15 +78,10 @@ When you export a map, the generator produces the following files:
 - You must open `_metadata.txt` and **manually** enter the North, South, East, and West coordinates into the widget settings.
 
 * **Link SD Card**: Connect your radio via USB (Storage Mode). Click **🔗 Link SD Card** and select the root of your radio's SD drive.
-* **Extract All**: Click the **⚡ Extract All** button. This will generate and save both the 16-bit BMP and the metadata files in one click.
-    * If linked, files are sent to `/bitmaps/GPS` and `/documents/user` and you will not have to move anything manually.
-    * If not linked, the files will download to your browser's default downloads folder. Copy them to the corresponding folders on your radio.
-* **Manual Export**: Use the individual **Meta**, **Direct** (16-bit), or **Suite** (24-bit) buttons for specific file needs (see **6. If exported via Suite-button** section just below).
-
-### 6. If exported via Suite-button:
-* When exported via **Suite** button, 24-bit BMP files will always be downloaded to your browser's default downloads folder.
-* Open **Ethos Suite** and use the **Image Manager** to transcode the BMP to the radio's native 16-bit format. Then place that file in `RADIO:/bitmaps/GPS`.
-* For GPS AccuMap, the JSON file is still used for automatic coordinate loading. For the built-in widget, use the values in `_metadata.txt` for manual coordinate entry.
+* **Sync To SD**: Click the **⚡ Sync To SD** button. This will generate and save the 16-bit BMP, JSON coordinates, and metadata in one click.
+    * If linked, files are sent to `/bitmaps/GPS` and `/documents/user` — no manual file management needed.
+    * If not linked, the tool automatically prompts you to select the SD card first.
+* **Download ZIP**: Click the **📦 Download ZIP** button to download all three files in a single ZIP archive. Manually place the BMP in `RADIO:/bitmaps/GPS/` and the JSON + metadata in `RADIO:/documents/user/`.
 
 **Radio/SD card linking:**
 
@@ -133,21 +127,16 @@ When you export a map, the generator produces the following files:
 ---
 
 ### ⚠️ Important: Understanding the File Formats
-When you export your files, you will notice differences in how they appear depending on where you open them:
+When you export your files:
 
 **The Map Image (.bmp)**
 
-* **On the Radio:** If you used **Direct (16-bit)**, the map will look perfect, crisp, and colorful on your Ethos screen (for both widgets).
-* **On Desktop/PC: Direct (16-bit)**: Will likely look like a **"Green Storm"** or have strange purple/green distortion. **This is normal**. Desktop photo viewers do not natively support the 16-bit R5-G6-B5 format used by FrSky hardware. Do not try to "fix" the colors on your PC; it is already perfect for your radio.
-* **Suite (24-bit):** Will look like a normal satellite photo on your PC. Use this version only if you plan to process it through the Ethos Suite Image Manager.
+* **On the Radio:** The 16-bit BMP will look perfect, crisp, and colorful on your Ethos screen (for both widgets).
+* **On Desktop/PC:** The 16-bit BMP now uses a spec-compliant **BI_BITFIELDS** header with proper RGB565 color masks, so it displays correctly on both the radio and desktop viewers. No more "Green Storm" — the exported BMP looks normal everywhere.
 
 **Metadata Files:**
 * **`.json`** — Used by GPS AccuMap for **automatic** coordinate loading.
 * **`_metadata.txt`** — Used by the built-in Ethos GPS Map widget — coordinates must be entered **manually**.
-
-#### An example of the "Green Storm" overlay in a 16-bit BMP file (a Direct export of the map image intended for use in the radio), loaded onto the desktop:
-
-<img width="784" height="480" alt="Image" src="https://github.com/user-attachments/assets/4bb7b0d8-810c-4eae-ae5b-1290fba7fc29" />
 
 ---
 
