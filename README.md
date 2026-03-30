@@ -11,7 +11,8 @@ The Ethos GPS Map Generator is a high-precision, web-based tool designed to crea
 >
 > ⚠️ **You can use the tool online without downloading** by visiting: [https://martinovem.github.io/Ethos-GPS-Map-Generator/](https://martinovem.github.io/Ethos-GPS-Map-Generator/)
 
-<img width="815" height="575" alt="Image" src="https://github.com/user-attachments/assets/b7bd16db-99e8-46d8-b7e8-225e4e18de3d" />
+<img width="1500" height="1062" alt="EthosMapGen" src="https://github.com/user-attachments/assets/030e5b8c-eb28-43f9-8658-ad437abddd45" />
+
 
 ---
 
@@ -87,7 +88,8 @@ When you export a map, the generator produces the following files:
 
 **Radio/SD card linking:**
 
-<img width="994" height="563" alt="Image" src="https://github.com/user-attachments/assets/49a95f9d-99d5-42c5-b300-1bb0f3f4f32a" />
+<img width="1496" height="1062" alt="LinkSDCard" src="https://github.com/user-attachments/assets/c6adb327-17db-4dd0-b9f2-0dc3d7d74067" />
+
 
 ---
 
@@ -134,7 +136,7 @@ When you export your files:
 **The Map Image (.bmp)**
 
 * **On the Radio:** The 16-bit BMP will look perfect, crisp, and colorful on your Ethos screen (for both widgets).
-* **On Desktop/PC:** The 16-bit BMP now uses a spec-compliant **BI_BITFIELDS** header with proper RGB565 color masks, so it displays correctly on both the radio and desktop viewers. No more "Green Storm" — the exported BMP looks normal everywhere.
+* **On Desktop/PC:** The 16-bit BMP now uses a spec-compliant **BI_BITFIELDS** header with proper RGB565 color masks, so it displays correctly on both the radio and desktop viewers.
 
 **Metadata Files:**
 * **`.json`** — Used by GPS AccuMap for **automatic** coordinate loading.
