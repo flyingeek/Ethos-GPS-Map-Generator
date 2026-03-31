@@ -1,6 +1,5 @@
 <script>
     import { onMount } from "svelte";
-    import maplibregl from "maplibre-gl";
     import { buildRasterStyle, MAP_TYPES } from "./mapStyles.js";
     import { normalizeAngle, distanceMeters } from "./lib/geoUtils.js";
     import {
@@ -9,7 +8,6 @@
     } from "./lib/exportActions.js";
     import ProjectShelf from "./components/ProjectShelf.svelte";
     import SearchPanel from "./components/SearchPanel.svelte";
-    import "maplibre-gl/dist/maplibre-gl.css";
 
     let map;
     let mapContainer;
@@ -88,58 +86,147 @@
 
     const measuringFeatureId = "measure-line";
 
+    const MAPLIBRE_VERSION = "5.1.1";
+    const MAPLIBRE_CSS_URL = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`;
+    const MAPLIBRE_JS_URL = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js`;
+
+    let maplibreglApi = null;
+
+    function ensureMapLibreCss() {
+        if (
+            document.querySelector(
+                `link[data-maplibre-css="${MAPLIBRE_VERSION}"]`,
+            )
+        ) {
+            return;
+        }
+
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = MAPLIBRE_CSS_URL;
+        link.setAttribute("data-maplibre-css", MAPLIBRE_VERSION);
+        document.head.appendChild(link);
+    }
+
+    async function ensureMapLibreJs() {
+        if (window.maplibregl) {
+            return window.maplibregl;
+        }
+
+        const existing = document.querySelector(
+            `script[data-maplibre-js="${MAPLIBRE_VERSION}"]`,
+        );
+
+        if (existing) {
+            await new Promise((resolve, reject) => {
+                if (window.maplibregl) {
+                    resolve();
+                    return;
+                }
+                existing.addEventListener("load", () => resolve(), {
+                    once: true,
+                });
+                existing.addEventListener(
+                    "error",
+                    () => reject(new Error("Failed to load MapLibre script.")),
+                    { once: true },
+                );
+            });
+            return window.maplibregl;
+        }
+
+        const script = document.createElement("script");
+        script.src = MAPLIBRE_JS_URL;
+        script.defer = true;
+        script.setAttribute("data-maplibre-js", MAPLIBRE_VERSION);
+
+        await new Promise((resolve, reject) => {
+            script.addEventListener("load", () => resolve(), { once: true });
+            script.addEventListener(
+                "error",
+                () => reject(new Error("Failed to load MapLibre script.")),
+                { once: true },
+            );
+            document.head.appendChild(script);
+        });
+
+        return window.maplibregl;
+    }
+
+    async function ensureMapLibreFromCdn() {
+        ensureMapLibreCss();
+        maplibreglApi = await ensureMapLibreJs();
+    }
+
     onMount(() => {
-        map = new maplibregl.Map({
-            container: mapContainer,
-            style: buildRasterStyle(mapType),
-            center: [center.lng, center.lat],
-            zoom,
-            bearing: rotation,
-            preserveDrawingBuffer: true,
-            attributionControl: false,
-        });
+        let cancelled = false;
+        let watchdog;
 
-        map.addControl(
-            new maplibregl.NavigationControl({
-                showCompass: true,
-                visualizePitch: false,
-            }),
-            "top-left",
-        );
-        map.addControl(
-            new maplibregl.ScaleControl({ unit: "metric", maxWidth: 120 }),
-            "bottom-right",
-        );
+        const init = async () => {
+            try {
+                await ensureMapLibreFromCdn();
+                if (cancelled || !maplibreglApi) return;
 
-        map.on("load", () => {
-            refreshBounds();
-            refreshCenterAndZoom();
-        });
+                map = new maplibreglApi.Map({
+                    container: mapContainer,
+                    style: buildRasterStyle(mapType),
+                    center: [center.lng, center.lat],
+                    zoom,
+                    bearing: rotation,
+                    preserveDrawingBuffer: true,
+                    attributionControl: false,
+                });
 
-        map.on("move", () => {
-            refreshCenterAndZoom();
-            refreshBounds();
-            if (isMeasureActive) {
-                updateMeasureLine();
+                map.addControl(
+                    new maplibreglApi.NavigationControl({
+                        showCompass: true,
+                        visualizePitch: false,
+                    }),
+                    "top-left",
+                );
+                map.addControl(
+                    new maplibreglApi.ScaleControl({
+                        unit: "metric",
+                        maxWidth: 120,
+                    }),
+                    "bottom-right",
+                );
+
+                map.on("load", () => {
+                    refreshBounds();
+                    refreshCenterAndZoom();
+                });
+
+                map.on("move", () => {
+                    refreshCenterAndZoom();
+                    refreshBounds();
+                    if (isMeasureActive) {
+                        updateMeasureLine();
+                    }
+                });
+
+                map.on("zoom", () => {
+                    refreshCenterAndZoom();
+                    refreshBounds();
+                });
+
+                map.on("rotate", () => {
+                    rotation = Number(map.getBearing().toFixed(1));
+                });
+
+                map.on("contextmenu", () => {
+                    if (isMeasureActive) {
+                        toggleMeasure();
+                    }
+                });
+            } catch (error) {
+                console.error("MapLibre CDN loading failed:", error);
             }
-        });
+        };
 
-        map.on("zoom", () => {
-            refreshCenterAndZoom();
-            refreshBounds();
-        });
+        init();
 
-        map.on("rotate", () => {
-            rotation = Number(map.getBearing().toFixed(1));
-        });
-
-        map.on("contextmenu", () => {
-            if (isMeasureActive) {
-                toggleMeasure();
-            }
-        });
-
-        const watchdog = setInterval(async () => {
+        watchdog = setInterval(async () => {
             if (!sdHandle) {
                 isSdLinked = false;
                 return;
@@ -154,6 +241,7 @@
         }, 1800);
 
         return () => {
+            cancelled = true;
             clearInterval(watchdog);
             if (map) {
                 map.remove();
