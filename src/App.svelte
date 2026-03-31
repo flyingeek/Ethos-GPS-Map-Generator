@@ -29,6 +29,7 @@
     let sdHandle = null;
     let isSdLinked = false;
     let syncMessage = "Sync To SD";
+    let supportsSdSync = false;
 
     let bounds = { north: 0, south: 0, west: 0, east: 0 };
     let center = { lat: 42.6977, lng: 23.3219 };
@@ -211,6 +212,8 @@
     onMount(() => {
         let cancelled = false;
         let watchdog;
+
+        supportsSdSync = typeof window.showDirectoryPicker === "function";
 
         const init = async () => {
             try {
@@ -410,11 +413,11 @@
     }
 
     function toggleMeasure() {
-        if (!map || !homePosition) return;
+        if (!map) return;
 
         if (!isMeasureActive) {
             isMeasureActive = true;
-            measureStart = homePosition;
+            measureStart = homePosition ?? map.getCenter();
             measureTarget = null;
             measureTargetScreen = null;
             measureDistanceM = 0;
@@ -438,11 +441,11 @@
     }
 
     function updateMeasureLine() {
-        if (!map || (!homePosition && !measureStart)) {
+        if (!map) {
             return;
         }
 
-        const reference = homePosition ?? measureStart;
+        const reference = homePosition ?? map.getCenter();
         const target = measureTarget;
 
         if (!target) {
@@ -584,6 +587,7 @@
     }
 
     async function linkSdCard() {
+        if (!supportsSdSync) return;
         try {
             sdHandle = await window.showDirectoryPicker();
             isSdLinked = true;
@@ -617,6 +621,7 @@
     }
 
     async function handleSync() {
+        if (!supportsSdSync) return;
         if (!sdHandle) {
             await linkSdCard();
         }
@@ -831,10 +836,14 @@
             </div>
 
             <div class="action-controls">
-                <button class="warn" on:click={linkSdCard}
-                    >{isSdLinked ? "SD Linked" : "Link SD Card"}</button
-                >
-                <button class="ok" on:click={handleSync}>{syncMessage}</button>
+                {#if supportsSdSync}
+                    <button class="warn" on:click={linkSdCard}
+                        >{isSdLinked ? "SD Linked" : "Link SD Card"}</button
+                    >
+                    <button class="ok" on:click={handleSync}
+                        >{syncMessage}</button
+                    >
+                {/if}
                 <button class="ghost" on:click={handleDownloadZip}
                     >Download ZIP</button
                 >
@@ -924,6 +933,21 @@
                         ></line>
                     </svg>
                 {:else}
+                    {#if isMeasureActive && measureTargetScreen}
+                        <svg
+                            class="zone-overlay hud-overlay"
+                            viewBox={`0 0 ${mapWidth} ${mapHeight}`}
+                            preserveAspectRatio="none"
+                        >
+                            <line
+                                class="measure-guide"
+                                x1={mapWidth / 2}
+                                y1={mapHeight / 2}
+                                x2={measureTargetScreen.x}
+                                y2={measureTargetScreen.y}
+                            ></line>
+                        </svg>
+                    {/if}
                     <div class="crosshair hud-overlay"></div>
                 {/if}
                 <div class="zoom-badge hud-overlay">
@@ -931,7 +955,6 @@
                 </div>
                 <button
                     class={`measure-btn hud-overlay ${isMeasureActive ? "active" : ""}`}
-                    disabled={!homePosition}
                     on:click={toggleMeasure}
                 >
                     {isMeasureActive ? "Stop Measure" : "Measure"}
@@ -1226,6 +1249,42 @@
     .rotate-controls input[type="range"] {
         width: 280px;
         padding: 0;
+        accent-color: #4ea1ff;
+        -webkit-appearance: none;
+        appearance: none;
+        background: transparent;
+    }
+
+    .rotate-controls input[type="range"]::-webkit-slider-runnable-track {
+        height: 6px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #2f71c9, #68b2ff);
+    }
+
+    .rotate-controls input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 14px;
+        height: 14px;
+        margin-top: -4px;
+        border-radius: 50%;
+        background: #d9efff;
+        border: 1px solid #2d6cc0;
+        box-shadow: 0 0 6px rgba(78, 161, 255, 0.45);
+    }
+
+    .rotate-controls input[type="range"]::-moz-range-track {
+        height: 6px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #2f71c9, #68b2ff);
+    }
+
+    .rotate-controls input[type="range"]::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #d9efff;
+        border: 1px solid #2d6cc0;
+        box-shadow: 0 0 6px rgba(78, 161, 255, 0.45);
     }
 
     .bearing {
