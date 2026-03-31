@@ -68,6 +68,12 @@
                       lng: projectState.homePosition.lng,
                   }
                 : null,
+            f3aZoneVisible: Boolean(projectState.f3aZoneVisible),
+            f3aRotation: Number(projectState.f3aRotation) || 0,
+            f3aBaseDistance: Math.max(
+                1,
+                Number(projectState.f3aBaseDistance) || 150,
+            ),
         };
 
         const existingIndex = savedProjects.findIndex((p) => p.name === name);

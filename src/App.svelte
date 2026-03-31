@@ -31,11 +31,16 @@
 
     let isMeasureActive = false;
     let measureStart = null;
+    let measureTarget = null;
+    let measureTargetScreen = null;
     let measureDistanceM = 0;
+    let measureBearing = 0;
+    let measureRelativeAngle = 0;
     let homePosition = null;
     let homeScreenPoint = null;
     let isF3AZoneVisible = false;
     let f3aRotation = 0;
+    let f3aBaseDistance = 150;
     let f3aZoneGeometry = null;
 
     $: hudReference = homePosition ?? center;
@@ -49,14 +54,11 @@
             ? Number(customH) || 480
             : Number(resolution.split(",")[1]);
 
-    $: crosshairStyle = homeScreenPoint
-        ? `left:${homeScreenPoint.x}px;top:${homeScreenPoint.y}px;`
-        : "";
-
     $: if (map) {
         homePosition;
         isF3AZoneVisible;
         f3aRotation;
+        f3aBaseDistance;
         updateHomeCrosshairScreenPoint();
         updateF3AZoneOverlay();
     }
@@ -108,8 +110,6 @@
             map.keyboard.enable();
         }
     }
-
-    const measuringFeatureId = "measure-line";
 
     const MAPLIBRE_VERSION = "5.1.1";
     const MAPLIBRE_CSS_URL = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`;
@@ -259,12 +259,44 @@
                     refreshBounds();
                     updateHomeCrosshairScreenPoint();
                     updateF3AZoneOverlay();
+                    if (isMeasureActive) {
+                        updateMeasureLine();
+                    }
                 });
 
                 map.on("rotate", () => {
                     rotation = Number(map.getBearing().toFixed(1));
                     updateHomeCrosshairScreenPoint();
                     updateF3AZoneOverlay();
+                    if (isMeasureActive) {
+                        updateMeasureLine();
+                    }
+                });
+
+                map.on("mousemove", (event) => {
+                    if (!isMeasureActive) {
+                        return;
+                    }
+
+                    measureTarget = {
+                        lat: event.lngLat.lat,
+                        lng: event.lngLat.lng,
+                    };
+                    measureTargetScreen = {
+                        x: event.point.x,
+                        y: event.point.y,
+                    };
+                    updateMeasureLine();
+                });
+
+                map.on("mouseout", () => {
+                    if (!isMeasureActive) {
+                        return;
+                    }
+
+                    measureTarget = null;
+                    measureTargetScreen = null;
+                    updateMeasureLine();
                 });
 
                 map.on("contextmenu", () => {
@@ -345,87 +377,77 @@
         updateF3AZoneOverlay();
     }
 
+    function getBearingDegrees(from, to) {
+        const toRad = (deg) => (deg * Math.PI) / 180;
+        const toDeg = (rad) => (rad * 180) / Math.PI;
+        const lat1 = toRad(from.lat);
+        const lat2 = toRad(to.lat);
+        const deltaLng = toRad(to.lng - from.lng);
+        const y = Math.sin(deltaLng) * Math.cos(lat2);
+        const x =
+            Math.cos(lat1) * Math.sin(lat2) -
+            Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
+
+        return normalizeBearing(toDeg(Math.atan2(y, x)));
+    }
+
     function toggleMeasure() {
-        if (!map) return;
+        if (!map || !homePosition) return;
 
         if (!isMeasureActive) {
             isMeasureActive = true;
-            measureStart = homePosition ?? map.getCenter();
+            measureStart = homePosition;
+            measureTarget = null;
+            measureTargetScreen = null;
             measureDistanceM = 0;
-            ensureMeasureSource();
+            measureBearing = 0;
+            measureRelativeAngle = 0;
             updateMeasureLine();
             return;
         }
 
-        isMeasureActive = false;
-        measureStart = null;
-        measureDistanceM = 0;
-
-        if (map.getLayer(measuringFeatureId)) {
-            map.removeLayer(measuringFeatureId);
-        }
-        if (map.getSource(measuringFeatureId)) {
-            map.removeSource(measuringFeatureId);
-        }
+        stopMeasure();
     }
 
-    function ensureMeasureSource() {
-        if (!map.getSource(measuringFeatureId)) {
-            map.addSource(measuringFeatureId, {
-                type: "geojson",
-                data: {
-                    type: "Feature",
-                    geometry: {
-                        type: "LineString",
-                        coordinates: [],
-                    },
-                },
-            });
-        }
-
-        if (!map.getLayer(measuringFeatureId)) {
-            map.addLayer({
-                id: measuringFeatureId,
-                type: "line",
-                source: measuringFeatureId,
-                paint: {
-                    "line-color": "#89dc33",
-                    "line-width": 3,
-                    "line-dasharray": [2, 1.5],
-                },
-            });
-        }
+    function stopMeasure() {
+        isMeasureActive = false;
+        measureStart = null;
+        measureTarget = null;
+        measureTargetScreen = null;
+        measureDistanceM = 0;
+        measureBearing = 0;
+        measureRelativeAngle = 0;
     }
 
     function updateMeasureLine() {
-        if (
-            !map ||
-            (!homePosition && !measureStart) ||
-            !map.getSource(measuringFeatureId)
-        ) {
+        if (!map || (!homePosition && !measureStart)) {
             return;
         }
 
-        const mapCenter = map.getCenter();
         const reference = homePosition ?? measureStart;
+        const target = measureTarget;
+
+        if (!target) {
+            measureDistanceM = 0;
+            measureBearing = 0;
+            measureRelativeAngle = 0;
+            measureTargetScreen = null;
+            return;
+        }
+
         measureDistanceM = distanceMeters(
             reference.lat,
             reference.lng,
-            mapCenter.lat,
-            mapCenter.lng,
+            target.lat,
+            target.lng,
         );
-
-        const source = map.getSource(measuringFeatureId);
-        source.setData({
-            type: "Feature",
-            geometry: {
-                type: "LineString",
-                coordinates: [
-                    [reference.lng, reference.lat],
-                    [mapCenter.lng, mapCenter.lat],
-                ],
-            },
-        });
+        measureBearing = getBearingDegrees(reference, target);
+        const wrappedRelative = normalizeBearing(
+            measureBearing - normalizeBearing(rotation),
+        );
+        measureRelativeAngle =
+            wrappedRelative > 180 ? wrappedRelative - 360 : wrappedRelative;
+        measureTargetScreen = map.project([target.lng, target.lat]);
     }
 
     function updateHomeCrosshairScreenPoint() {
@@ -471,13 +493,6 @@
         };
     }
 
-    function snapScreenPoint(point) {
-        return {
-            x: Math.round(point.x * 2) / 2,
-            y: Math.round(point.y * 2) / 2,
-        };
-    }
-
     function updateF3AZoneOverlay() {
         if (!map || !homePosition || !isF3AZoneVisible) {
             f3aZoneGeometry = null;
@@ -485,35 +500,26 @@
         }
 
         const axisBearing = normalizeBearing(f3aRotation);
-        const sideLength = 150 / Math.cos(Math.PI / 6);
+        const halfApexAngleDeg = 60;
+        const baseDistanceM = Math.max(1, Number(f3aBaseDistance) || 150);
+        const sideLength =
+            baseDistanceM / Math.cos((Math.PI * halfApexAngleDeg) / 180);
         const leftPoint = destinationPoint(
             homePosition,
-            axisBearing - 30,
+            axisBearing - halfApexAngleDeg,
             sideLength,
         );
         const rightPoint = destinationPoint(
             homePosition,
-            axisBearing + 30,
+            axisBearing + halfApexAngleDeg,
             sideLength,
         );
 
-        const apexScreen = snapScreenPoint(
+        const apexScreen =
             homeScreenPoint ??
-                map.project([homePosition.lng, homePosition.lat]),
-        );
-        const leftScreen = snapScreenPoint(
-            map.project([leftPoint.lng, leftPoint.lat]),
-        );
-        const rightScreen = snapScreenPoint(
-            map.project([rightPoint.lng, rightPoint.lat]),
-        );
-
-        console.log("F3A apex/crosshair debug", {
-            apex: { x: apexScreen.x, y: apexScreen.y },
-            crosshair: homeScreenPoint
-                ? { x: homeScreenPoint.x, y: homeScreenPoint.y }
-                : null,
-        });
+            map.project([homePosition.lng, homePosition.lat]);
+        const leftScreen = map.project([leftPoint.lng, leftPoint.lat]);
+        const rightScreen = map.project([rightPoint.lng, rightPoint.lat]);
 
         f3aZoneGeometry = {
             apex: apexScreen,
@@ -537,9 +543,9 @@
         homePosition = null;
         homeScreenPoint = null;
         if (isMeasureActive) {
-            measureStart = map?.getCenter() ?? null;
-            updateMeasureLine();
+            stopMeasure();
         }
+        isF3AZoneVisible = false;
         updateF3AZoneOverlay();
     }
 
@@ -682,6 +688,12 @@
         zoomLock = p.zoomLock;
         rotation = p.rotation;
         homePosition = p.homePosition ?? null;
+        f3aRotation =
+            typeof p.f3aRotation === "number" && Number.isFinite(p.f3aRotation)
+                ? p.f3aRotation
+                : f3aRotation;
+        f3aBaseDistance = Math.max(1, Number(p.f3aBaseDistance) || 150);
+        isF3AZoneVisible = Boolean(p.f3aZoneVisible) && Boolean(homePosition);
 
         if (map) {
             map.jumpTo({
@@ -690,6 +702,7 @@
                 bearing: p.rotation,
             });
             updateHomeCrosshairScreenPoint();
+            updateF3AZoneOverlay();
         } else {
             center = { lat: p.center.lat, lng: p.center.lng };
             zoom = p.zoom;
@@ -731,6 +744,9 @@
                 center,
                 zoom,
                 homePosition,
+                f3aZoneVisible: isF3AZoneVisible,
+                f3aRotation,
+                f3aBaseDistance,
             }}
             on:loadproject={handleLoadProject}
         />
@@ -851,6 +867,7 @@
         <div class="map-column">
             <div
                 class="map-box"
+                class:measure-mode={isMeasureActive}
                 bind:this={mapViewport}
                 style={`width:${mapWidth}px;height:${mapHeight}px;`}
             >
@@ -876,7 +893,7 @@
                             y2={f3aZoneGeometry.right.y}
                         ></line>
                         <line
-                            class="f3a-triangle"
+                            class="f3a-triangle-base"
                             x1={f3aZoneGeometry.left.x}
                             y1={f3aZoneGeometry.left.y}
                             x2={f3aZoneGeometry.right.x}
@@ -884,22 +901,54 @@
                         ></line>
                     </svg>
                 {/if}
-                <div
-                    class={`crosshair hud-overlay ${homePosition ? "home-locked" : ""}`}
-                    style={crosshairStyle}
-                ></div>
+                {#if homeScreenPoint}
+                    <svg
+                        class="zone-overlay hud-overlay"
+                        viewBox={`0 0 ${mapWidth} ${mapHeight}`}
+                        preserveAspectRatio="none"
+                    >
+                        {#if isMeasureActive && measureTargetScreen}
+                            <line
+                                class="measure-guide"
+                                x1={homeScreenPoint.x}
+                                y1={homeScreenPoint.y}
+                                x2={measureTargetScreen.x}
+                                y2={measureTargetScreen.y}
+                            ></line>
+                        {/if}
+                        <line
+                            class="locked-crosshair"
+                            x1={homeScreenPoint.x - 20}
+                            y1={homeScreenPoint.y}
+                            x2={homeScreenPoint.x + 20}
+                            y2={homeScreenPoint.y}
+                        ></line>
+                        <line
+                            class="locked-crosshair"
+                            x1={homeScreenPoint.x}
+                            y1={homeScreenPoint.y - 20}
+                            x2={homeScreenPoint.x}
+                            y2={homeScreenPoint.y + 20}
+                        ></line>
+                    </svg>
+                {:else}
+                    <div class="crosshair hud-overlay"></div>
+                {/if}
                 <div class="zoom-badge hud-overlay">
                     Zoom: {zoom.toFixed(1)}
                 </div>
                 <button
                     class={`measure-btn hud-overlay ${isMeasureActive ? "active" : ""}`}
+                    disabled={!homePosition}
                     on:click={toggleMeasure}
                 >
                     {isMeasureActive ? "Stop Measure" : "Measure"}
                 </button>
                 <div class="coords hud-overlay">
                     {#if isMeasureActive}
-                        📏 {measureDistanceM.toFixed(1)}m / {(
+                        📏 BRG {measureBearing.toFixed(1)}° | REL {measureRelativeAngle.toFixed(
+                            1,
+                        )}° | {measureDistanceM.toFixed(1)}m / {(
                             measureDistanceM * 3.28084
                         ).toFixed(0)}ft |
                     {/if}
@@ -946,60 +995,73 @@
                 </p>
             </section>
 
-            <section class="f3a-panel">
-                <h2>F3A Zone</h2>
-                <p>
-                    Draw a yellow 60° triangle from the locked home position
-                    with the base centered 150m away.
-                </p>
-                <div class="home-actions">
-                    <button
-                        class={isF3AZoneVisible ? "warn" : "ok"}
-                        on:click={toggleF3AZone}
-                        disabled={!homePosition}
-                        >{isF3AZoneVisible ? "Hide Zone" : "Show Zone"}</button
-                    >
-                    <button
-                        class="ghost"
-                        on:click={resetF3ARotation}
-                        disabled={!homePosition}>Reset</button
-                    >
-                    >
-                </div>
-                <label class="field zone-field">
-                    <span>Rotation</span>
-                    <input
-                        type="range"
-                        min="-180"
-                        max="180"
-                        step="0.1"
-                        bind:value={f3aRotation}
-                        disabled={!homePosition || !isF3AZoneVisible}
-                    />
-                </label>
-                <div class="zone-rotation-readout">
-                    <span
-                        class="bearing"
-                        title="Scroll to adjust by 0.1°"
-                        on:wheel|preventDefault={handleF3ARotationWheel}
-                        >{Number(f3aRotation).toFixed(1)}°</span
-                    >
-                    <span
-                        class="wheel-hint"
-                        aria-hidden="true"
-                        title="Use mouse wheel here">🖱️</span
-                    >
-                </div>
-                <p class="home-coords">
-                    {#if homePosition}
+            {#if homePosition}
+                <section class="f3a-panel">
+                    <h2>F3A Zone</h2>
+                    <p>
+                        Draw a yellow 120° triangle from the locked home
+                        position with the base centered {Math.max(
+                            1,
+                            Number(f3aBaseDistance) || 150,
+                        ).toFixed(0)}m away.
+                    </p>
+                    <div class="home-actions">
+                        <button
+                            class={isF3AZoneVisible ? "warn" : "ok"}
+                            on:click={toggleF3AZone}
+                            >{isF3AZoneVisible
+                                ? "Hide Zone"
+                                : "Show Zone"}</button
+                        >
+                        <button class="ghost" on:click={resetF3ARotation}
+                            >Reset</button
+                        >
+                    </div>
+                    <label class="field zone-field">
+                        <div class="zone-field-head">
+                            <span>Rotation</span>
+                            <div class="zone-rotation-readout">
+                                <span
+                                    class="bearing"
+                                    title="Scroll to adjust by 0.1°"
+                                    on:wheel|preventDefault={handleF3ARotationWheel}
+                                    >{Number(f3aRotation).toFixed(1)}°</span
+                                >
+                                <span
+                                    class="wheel-hint"
+                                    aria-hidden="true"
+                                    title="Use mouse wheel here">🖱️</span
+                                >
+                            </div>
+                        </div>
+                        <input
+                            type="range"
+                            min="-180"
+                            max="180"
+                            step="0.1"
+                            bind:value={f3aRotation}
+                            disabled={!isF3AZoneVisible}
+                        />
+                    </label>
+                    <label class="field zone-field">
+                        <span>Base Distance (m)</span>
+                        <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            bind:value={f3aBaseDistance}
+                        />
+                    </label>
+                    <p class="home-coords">
                         Base up by default | Rotation {Number(
                             f3aRotation,
-                        ).toFixed(1)}°
-                    {:else}
-                        Set Home Position first
-                    {/if}
-                </p>
-            </section>
+                        ).toFixed(1)}° | Base {Math.max(
+                            1,
+                            Number(f3aBaseDistance) || 150,
+                        ).toFixed(0)}m
+                    </p>
+                </section>
+            {/if}
 
             <section>
                 <h2>Export Notes</h2>
@@ -1089,7 +1151,7 @@
         min-width: 90px;
     }
 
-    .field span,
+    .field > span,
     .rotate-label {
         text-transform: uppercase;
         letter-spacing: 0.08em;
@@ -1263,6 +1325,30 @@
         filter: drop-shadow(0 0 4px rgba(240, 216, 59, 0.45));
     }
 
+    .f3a-triangle-base {
+        fill: none;
+        stroke: #f0d83b;
+        stroke-width: 1.5;
+        stroke-linecap: butt;
+        filter: drop-shadow(0 0 4px rgba(240, 216, 59, 0.45));
+    }
+
+    .locked-crosshair {
+        stroke: #95ef37;
+        stroke-width: 2;
+        stroke-linecap: butt;
+        filter: drop-shadow(0 0 8px rgba(149, 239, 55, 0.65));
+    }
+
+    .measure-guide {
+        fill: none;
+        stroke: #89dc33;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-dasharray: 7 6;
+        filter: drop-shadow(0 0 4px rgba(137, 220, 51, 0.5));
+    }
+
     .crosshair {
         position: absolute;
         left: 50%;
@@ -1272,10 +1358,6 @@
         transform: translate(-50%, -50%);
         opacity: 0.75;
         pointer-events: none;
-    }
-
-    .crosshair.home-locked {
-        opacity: 0.95;
     }
 
     .crosshair::before,
@@ -1386,6 +1468,21 @@
         min-width: unset;
     }
 
+    .zone-field-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .zone-field-head > span {
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #8da0ab;
+        font-size: 0.7rem;
+        font-weight: 700;
+    }
+
     .zone-field input[type="range"] {
         width: 100%;
         padding: 0;
@@ -1442,5 +1539,18 @@
         border-top: none;
         font-family: "Space Mono", monospace;
         font-weight: 700;
+    }
+
+    :global(.map-box.measure-mode .maplibregl-canvas-container),
+    :global(
+            .map-box.measure-mode
+                .maplibregl-canvas-container.maplibregl-interactive
+        ),
+    :global(
+            .map-box.measure-mode
+                .maplibregl-canvas-container.maplibregl-interactive:active
+        ),
+    :global(.map-box.measure-mode .maplibregl-canvas) {
+        cursor: crosshair !important;
     }
 </style>
