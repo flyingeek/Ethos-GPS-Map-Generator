@@ -67,6 +67,7 @@ export function createLuaBlob({
 
     const lua = `return {
   title = "${mapTitle}",
+    generatedAtIso = "${new Date().toISOString()}",
   resolution = { width = ${mapWidth}, height = ${mapHeight} },
     zoom = ${Number(zoom.toFixed(1))},
     rotation = ${Number(rotation.toFixed(1))},
