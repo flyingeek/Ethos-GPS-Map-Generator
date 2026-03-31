@@ -5,6 +5,7 @@
     import { buildRasterStyle, MAP_TYPES } from "./mapStyles.js";
     import { normalizeAngle, distanceMeters } from "./lib/geoUtils.js";
     import { createBmpBlob } from "./lib/bmpExport.js";
+    import SearchPanel from "./components/SearchPanel.svelte";
     import {
         createJsonBlob,
         createLuaBlob,
@@ -23,10 +24,6 @@
     let mapType = "y";
     let zoomLock = false;
     let rotation = 0;
-    let searchQuery = "";
-    let searchBusy = false;
-    let searchMessage = "";
-    let searchResults = [];
 
     let sdHandle = null;
     let isSdLinked = false;
@@ -206,79 +203,6 @@
     function handleRotationWheel(event) {
         const step = event.deltaY < 0 ? 0.1 : -0.1;
         rotation = normalizeAngle(rotation + step);
-    }
-
-    async function searchPlace() {
-        const query = searchQuery.trim();
-        if (!query || !map) return;
-
-        searchBusy = true;
-        searchMessage = "";
-        searchResults = [];
-
-        try {
-            const endpoint = new URL(
-                "https://nominatim.openstreetmap.org/search",
-            );
-            endpoint.searchParams.set("q", query);
-            endpoint.searchParams.set("format", "jsonv2");
-            endpoint.searchParams.set("limit", "5");
-
-            const response = await fetch(endpoint, {
-                headers: {
-                    Accept: "application/json",
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error("Search service unavailable.");
-            }
-
-            const results = await response.json();
-            if (!Array.isArray(results) || results.length === 0) {
-                searchMessage = "No place found.";
-                return;
-            }
-
-            searchResults = results
-                .map((item) => {
-                    const lat = Number.parseFloat(item.lat);
-                    const lon = Number.parseFloat(item.lon);
-                    return {
-                        display: item.display_name || "Unknown place",
-                        lat,
-                        lon,
-                    };
-                })
-                .filter(
-                    (item) =>
-                        Number.isFinite(item.lat) && Number.isFinite(item.lon),
-                )
-                .slice(0, 5);
-
-            if (searchResults.length === 0) {
-                searchMessage = "Search returned invalid coordinates.";
-                return;
-            }
-
-            searchMessage = `${searchResults.length} results found. Select one below.`;
-        } catch (error) {
-            searchMessage = "Search failed. Please try again.";
-        } finally {
-            searchBusy = false;
-        }
-    }
-
-    function selectSearchResult(result) {
-        if (!map) return;
-
-        map.flyTo({
-            center: [result.lon, result.lat],
-            zoom: Math.max(map.getZoom(), 14),
-            speed: 0.8,
-        });
-
-        searchMessage = result.display;
     }
 
     function toggleMeasure() {
@@ -792,56 +716,7 @@
                 </div>
             </div>
 
-            <div
-                class="panel search-panel"
-                style={`width:${mapWidth}px;max-width:100%;`}
-            >
-                <div class="search-row">
-                    <label class="field search-field">
-                        <span>Search Place (No API Key)</span>
-                        <input
-                            type="text"
-                            bind:value={searchQuery}
-                            placeholder="Airport, city or coordinates"
-                            on:keydown={(event) => {
-                                if (event.key === "Enter") {
-                                    searchPlace();
-                                }
-                            }}
-                        />
-                    </label>
-                    <button
-                        class="ghost search-btn"
-                        on:click={searchPlace}
-                        disabled={searchBusy}
-                        >{searchBusy ? "Searching..." : "Search"}</button
-                    >
-                </div>
-
-                {#if searchMessage}
-                    <div class="search-status" title={searchMessage}>
-                        {searchMessage}
-                    </div>
-                {/if}
-
-                {#if searchResults.length > 0}
-                    <div class="search-results">
-                        {#each searchResults as result, index}
-                            <button
-                                class="result-item"
-                                type="button"
-                                on:click={() => selectSearchResult(result)}
-                                title={result.display}
-                            >
-                                <span class="result-index">#{index + 1}</span>
-                                <span class="result-label"
-                                    >{result.display}</span
-                                >
-                            </button>
-                        {/each}
-                    </div>
-                {/if}
-            </div>
+            <SearchPanel {map} {mapWidth} />
         </div>
 
         <aside class="panel guide">
@@ -1113,78 +988,6 @@
     .map-surface {
         width: 100%;
         height: 100%;
-    }
-
-    .search-panel {
-        border-color: #3b5f31;
-        display: grid;
-        gap: 8px;
-    }
-
-    .search-row {
-        display: flex;
-        gap: 8px;
-        align-items: end;
-        flex-wrap: wrap;
-    }
-
-    .search-field {
-        min-width: 320px;
-        flex: 1;
-    }
-
-    .search-field input {
-        width: 100%;
-    }
-
-    .search-btn {
-        min-width: 110px;
-    }
-
-    .search-status {
-        font-size: 0.78rem;
-        color: #a9cf7d;
-        font-family: "Space Mono", monospace;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .search-results {
-        display: grid;
-        gap: 6px;
-    }
-
-    .result-item {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: 8px;
-        align-items: center;
-        text-align: left;
-        background: rgba(13, 22, 27, 0.88);
-        border: 1px solid #39545d;
-        min-height: 34px;
-        padding: 6px 8px;
-    }
-
-    .result-item:hover {
-        border-color: #8acf35;
-        background: rgba(21, 35, 41, 0.94);
-    }
-
-    .result-index {
-        color: #91cd46;
-        font-family: "Space Mono", monospace;
-        font-size: 0.72rem;
-        min-width: 24px;
-    }
-
-    .result-label {
-        font-size: 0.8rem;
-        color: #d7e2e8;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
 
     .crosshair {
