@@ -44,8 +44,10 @@ The Ethos GPS Map Generator is a high-precision, web-based tool designed to crea
 ### 1. To use this tool from the repository:
 1. **Download**: Click the green **Code** button at the top of this page and select **Download ZIP.**
 2. **Extract**: Unzip the files to a folder on your computer.
-3. **Run**: Simply double-click the `index.html` file to open the generator in your web browser.
-   * *Note: A Chromium-based browser (Chrome or Edge) is required for the "Link SD Card" feature to function.*
+3. **Install**: Open a terminal in the project folder and run `npm install`.
+4. **Run (development)**: Start the app with `npm run dev`, then open the local URL shown in the terminal.
+5. **Build (production)**: Use `npm run build` to generate the production files in `dist/`.
+    * *Note: A Chromium-based browser (Chrome or Edge) is required for the "Link SD Card" feature to function.*
 
 **Or use it online:** [https://martinovem.github.io/Ethos-GPS-Map-Generator/](https://martinovem.github.io/Ethos-GPS-Map-Generator/)
 
@@ -61,6 +63,7 @@ The Ethos GPS Map Generator is a high-precision, web-based tool designed to crea
 
 ### 4. Precision Alignment
 * Center the crosshair over the middle of your flying area.
+* Use the **Rotation** slider (or +/- step buttons) to rotate the map and align runway orientation.
 * Once positioned, check the **Zoom Lock** box to freeze the scale.
 * (Optional) Use the **📏 Measure** tool to verify the flight area boundaries.
 
