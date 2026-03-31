@@ -2,6 +2,13 @@
  * Pure geographic utility functions — no Svelte dependency.
  */
 
+/**
+ * Normalize angle to [-180, 180] range.
+ * Use for: relative angles, rotation offsets, heading differences.
+ * Example: rotation delta, relative bearing from map bearing
+ * normalizeAngle(270) → -90
+ * normalizeAngle(-200) → 160
+ */
 export function normalizeAngle(value) {
     let out = value;
     while (out > 180) out -= 360;
@@ -24,6 +31,13 @@ export function distanceMeters(lat1, lon1, lat2, lon2) {
     return r * c;
 }
 
+/**
+ * Normalize bearing to [0, 360] range.
+ * Use for: absolute compass bearings, cardinal directions, destinations.
+ * Example: azimuth heading, true bearing from one point to another
+ * normalizeBearing(-90) → 270
+ * normalizeBearing(450) → 90
+ */
 export function normalizeBearing(value) {
     return ((value % 360) + 360) % 360;
 }
