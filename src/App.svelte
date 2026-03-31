@@ -617,30 +617,30 @@
         ctx.translate(cx, cy);
         ctx.rotate((-bearing * Math.PI) / 180);
 
+        // Shaft — kept short to leave room for "N" inside the circle.
         ctx.strokeStyle = "#ecf5e5";
         ctx.lineWidth = 2.2;
         ctx.lineCap = "round";
         ctx.beginPath();
-        ctx.moveTo(0, size * 0.12);
-        ctx.lineTo(0, -size * 0.2);
+        ctx.moveTo(0, size * 0.1);
+        ctx.lineTo(0, -size * 0.1);
         ctx.stroke();
 
-        ctx.fillStyle = "#8acf35";
+        // Arrowhead — scaled down so tip stays well within the circle.
+        ctx.fillStyle = "#e03030";
         ctx.beginPath();
-        ctx.moveTo(0, -size * 0.34);
-        ctx.lineTo(size * 0.12, -size * 0.14);
-        ctx.lineTo(-size * 0.12, -size * 0.14);
+        ctx.moveTo(0, -size * 0.24);
+        ctx.lineTo(size * 0.09, -size * 0.1);
+        ctx.lineTo(-size * 0.09, -size * 0.1);
         ctx.closePath();
         ctx.fill();
 
-        ctx.restore();
-
-        ctx.save();
+        // "N" above the arrowhead, still inside the circle (radius = size*0.5).
         ctx.fillStyle = "#d8efb2";
-        ctx.font = `700 ${Math.max(10, Math.round(size * 0.24))}px sans-serif`;
+        ctx.font = `700 ${Math.max(8, Math.round(size * 0.18))}px sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText("N", cx, cy + size * 0.34);
+        ctx.fillText("N", 0, -size * 0.36);
 
         ctx.restore();
     }
