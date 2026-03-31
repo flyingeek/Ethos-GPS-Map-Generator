@@ -949,14 +949,6 @@
                             bind:value={f3aBaseDistance}
                         />
                     </label>
-                    <p class="home-coords">
-                        Base up by default | Rotation {Number(
-                            f3aRotation,
-                        ).toFixed(1)}° | Base {Math.max(
-                            1,
-                            Number(f3aBaseDistance) || 150,
-                        ).toFixed(0)}m
-                    </p>
                 </section>
             {/if}
 
@@ -1341,10 +1333,6 @@
             max-width: 100%;
             height: auto;
             aspect-ratio: 5 / 3;
-        }
-
-        .search-field {
-            min-width: 100%;
         }
 
         .map-surface {
