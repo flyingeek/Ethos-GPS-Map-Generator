@@ -1,15 +1,13 @@
 <script>
+    import OverlaySvg from "./OverlaySvg.svelte";
+
     export let geometry = null;
     export let mapWidth = 800;
     export let mapHeight = 480;
 </script>
 
 {#if geometry}
-    <svg
-        class="zone-overlay hud-overlay"
-        viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-        preserveAspectRatio="none"
-    >
+    <OverlaySvg {mapWidth} {mapHeight}>
         <line
             class="f3a-triangle"
             x1={geometry.apex.x}
@@ -31,19 +29,10 @@
             x2={geometry.right.x}
             y2={geometry.right.y}
         ></line>
-    </svg>
+    </OverlaySvg>
 {/if}
 
 <style>
-    .zone-overlay {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        shape-rendering: geometricPrecision;
-    }
-
     :global(.f3a-triangle) {
         fill: none;
         stroke: #f0d83b;

@@ -1,4 +1,6 @@
 <script>
+    import OverlaySvg from "./OverlaySvg.svelte";
+
     export let isActive = false;
     export let startPoint = null;
     export let targetPoint = null;
@@ -7,11 +9,7 @@
 </script>
 
 {#if isActive && startPoint && targetPoint}
-    <svg
-        class="zone-overlay hud-overlay"
-        viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-        preserveAspectRatio="none"
-    >
+    <OverlaySvg {mapWidth} {mapHeight}>
         <line
             class="measure-guide"
             x1={startPoint.x}
@@ -39,19 +37,10 @@
             x2={targetPoint.x}
             y2={targetPoint.y + 10}
         ></line>
-    </svg>
+    </OverlaySvg>
 {/if}
 
 <style>
-    .zone-overlay {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        shape-rendering: geometricPrecision;
-    }
-
     :global(.measure-guide) {
         fill: none;
         stroke: #89dc33;

@@ -1,15 +1,13 @@
 <script>
+    import OverlaySvg from "./OverlaySvg.svelte";
+
     export let screenPoint = null;
     export let mapWidth = 800;
     export let mapHeight = 480;
 </script>
 
 {#if screenPoint}
-    <svg
-        class="zone-overlay hud-overlay"
-        viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-        preserveAspectRatio="none"
-    >
+    <OverlaySvg {mapWidth} {mapHeight}>
         <line
             class="locked-crosshair"
             x1={screenPoint.x - 20}
@@ -24,19 +22,10 @@
             x2={screenPoint.x}
             y2={screenPoint.y + 20}
         ></line>
-    </svg>
+    </OverlaySvg>
 {/if}
 
 <style>
-    .zone-overlay {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        shape-rendering: geometricPrecision;
-    }
-
     :global(.locked-crosshair) {
         stroke: #95ef37;
         stroke-width: 2;
