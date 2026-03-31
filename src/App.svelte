@@ -21,13 +21,13 @@
     let mapContainer;
     let mapViewport;
 
-    let mapTitle = "EthosMap";
-    let resolution = "800,480";
+    let mapTitle = "CestasMap";
+    let resolution = "784,316";
     let customW = 800;
     let customH = 480;
     let mapType = "y";
     let zoomLock = false;
-    let rotation = 0;
+    let rotation = 42.5;
 
     let sdHandle = null;
     let isSdLinked = false;
@@ -35,8 +35,8 @@
     let supportsSdSync = false;
 
     let bounds = { north: 0, south: 0, west: 0, east: 0 };
-    let center = { lat: 42.6977, lng: 23.3219 };
-    let zoom = 12;
+    let center = { lat: 44.71607983566827, lng: -0.7165001920591294 };
+    let zoom = 14.7;
 
     let isMeasureActive = false;
     let measureStart = null;
@@ -46,10 +46,10 @@
     let measureDistanceM = 0;
     let measureBearing = 0;
     let measureRelativeAngle = 0;
-    let homePosition = null;
+    let homePosition = { lat: 44.714409685877825, lng: -0.7168534611050745 };
     let homeScreenPoint = null;
-    let isF3AZoneVisible = false;
-    let f3aRotation = 0;
+    let isF3AZoneVisible = true;
+    let f3aRotation = 42.5;
     let f3aBaseDistance = 150;
     let f3aZoneGeometry = null;
 
@@ -776,9 +776,14 @@
 
             <div class="action-controls">
                 {#if supportsSdSync}
-                    <button class="warn" on:click={linkSdCard}
-                        >{isSdLinked ? "SD Linked" : "Link SD Card"}</button
+                    <button
+                        type="button"
+                        class="sd-status-link"
+                        on:click={linkSdCard}
+                        title="Pick or change SD folder (optional)"
                     >
+                        {isSdLinked ? "Linked (relink)" : "Not linked"}
+                    </button>
                     <button class="ok" on:click={handleSync}
                         >{syncMessage}</button
                     >
@@ -1120,6 +1125,23 @@
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
+    }
+
+    .sd-status-link {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #a2b4bc;
+        font-family: "Space Mono", monospace;
+        font-size: 0.72rem;
+        letter-spacing: 0.02em;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        cursor: pointer;
+    }
+
+    .sd-status-link:hover {
+        color: #c2d2d9;
     }
 
     .bounds-grid {
