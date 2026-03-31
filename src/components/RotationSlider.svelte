@@ -1,11 +1,12 @@
 <script>
+    import { normalizeAngle } from "../lib/geoUtils.js";
+
     export let value = 0;
     export let label = "Rotation";
     export let disabled = false;
     export let showStepButtons = false;
     export let stepSize = 15;
     export let onStepClick = null;
-    export let onWheel = null;
     export let onReset = null;
     export let showReadout = true;
     export let readoutSlot = false;
@@ -25,6 +26,11 @@
         } else {
             value = 0;
         }
+    }
+
+    function handleWheel(event) {
+        const step = event.deltaY < 0 ? 0.1 : -0.1;
+        value = normalizeAngle(value + step);
     }
 </script>
 
@@ -56,7 +62,8 @@
         <span
             class="bearing"
             title="Scroll to adjust by 0.1°"
-            on:wheel|preventDefault={onWheel}>{Number(value).toFixed(1)}°</span
+            on:wheel|preventDefault={handleWheel}
+            >{Number(value).toFixed(1)}°</span
         >
         <span
             class="wheel-hint"
@@ -76,7 +83,7 @@
                     <span
                         class="bearing"
                         title="Scroll to adjust by 0.1°"
-                        on:wheel|preventDefault={onWheel}
+                        on:wheel|preventDefault={handleWheel}
                         >{Number(value).toFixed(1)}°</span
                     >
                     <span

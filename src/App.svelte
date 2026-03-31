@@ -15,6 +15,9 @@
     import ProjectShelf from "./components/ProjectShelf.svelte";
     import SearchPanel from "./components/SearchPanel.svelte";
     import RotationSlider from "./components/RotationSlider.svelte";
+    import F3AZoneOverlay from "./components/F3AZoneOverlay.svelte";
+    import HomeCrosshairOverlay from "./components/HomeCrosshairOverlay.svelte";
+    import MeasureLineOverlay from "./components/MeasureLineOverlay.svelte";
 
     let map;
     let mapContainer;
@@ -412,17 +415,6 @@
         if (map) {
             map.easeTo({ bearing: 0, duration: 260 });
         }
-    }
-
-    function handleRotationWheel(event) {
-        const step = event.deltaY < 0 ? 0.1 : -0.1;
-        rotation = normalizeAngle(rotation + step);
-    }
-
-    function handleF3ARotationWheel(event) {
-        const step = event.deltaY < 0 ? 0.1 : -0.1;
-        f3aRotation = normalizeAngle(f3aRotation + step);
-        updateF3AZoneOverlay();
     }
 
     function getBearingDegrees(from, to) {
@@ -831,7 +823,6 @@
                 stepSize={15}
                 onStepClick={rotateStep}
                 onReset={resetRotation}
-                onWheel={handleRotationWheel}
                 layout="horizontal"
             />
 
@@ -873,121 +864,35 @@
                 style={`width:${mapWidth}px;height:${mapHeight}px;`}
             >
                 <div class="map-surface" bind:this={mapContainer}></div>
-                {#if f3aZoneGeometry}
-                    <svg
-                        class="zone-overlay hud-overlay"
-                        viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-                        preserveAspectRatio="none"
-                    >
-                        <line
-                            class="f3a-triangle"
-                            x1={f3aZoneGeometry.apex.x}
-                            y1={f3aZoneGeometry.apex.y}
-                            x2={f3aZoneGeometry.left.x}
-                            y2={f3aZoneGeometry.left.y}
-                        ></line>
-                        <line
-                            class="f3a-triangle"
-                            x1={f3aZoneGeometry.apex.x}
-                            y1={f3aZoneGeometry.apex.y}
-                            x2={f3aZoneGeometry.right.x}
-                            y2={f3aZoneGeometry.right.y}
-                        ></line>
-                        <line
-                            class="f3a-triangle-base"
-                            x1={f3aZoneGeometry.left.x}
-                            y1={f3aZoneGeometry.left.y}
-                            x2={f3aZoneGeometry.right.x}
-                            y2={f3aZoneGeometry.right.y}
-                        ></line>
-                    </svg>
-                {/if}
+                <F3AZoneOverlay
+                    geometry={f3aZoneGeometry}
+                    {mapWidth}
+                    {mapHeight}
+                />
                 {#if homeScreenPoint}
-                    <svg
-                        class="zone-overlay hud-overlay"
-                        viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-                        preserveAspectRatio="none"
-                    >
-                        {#if isMeasureActive && measureTargetScreen}
-                            <line
-                                class="measure-guide"
-                                x1={homeScreenPoint.x}
-                                y1={homeScreenPoint.y}
-                                x2={measureTargetScreen.x}
-                                y2={measureTargetScreen.y}
-                            ></line>
-                            <circle
-                                class="measure-cursor-ring"
-                                cx={measureTargetScreen.x}
-                                cy={measureTargetScreen.y}
-                                r="6"
-                            ></circle>
-                            <line
-                                class="measure-cursor-mark"
-                                x1={measureTargetScreen.x - 10}
-                                y1={measureTargetScreen.y}
-                                x2={measureTargetScreen.x + 10}
-                                y2={measureTargetScreen.y}
-                            ></line>
-                            <line
-                                class="measure-cursor-mark"
-                                x1={measureTargetScreen.x}
-                                y1={measureTargetScreen.y - 10}
-                                x2={measureTargetScreen.x}
-                                y2={measureTargetScreen.y + 10}
-                            ></line>
-                        {/if}
-                        <line
-                            class="locked-crosshair"
-                            x1={homeScreenPoint.x - 20}
-                            y1={homeScreenPoint.y}
-                            x2={homeScreenPoint.x + 20}
-                            y2={homeScreenPoint.y}
-                        ></line>
-                        <line
-                            class="locked-crosshair"
-                            x1={homeScreenPoint.x}
-                            y1={homeScreenPoint.y - 20}
-                            x2={homeScreenPoint.x}
-                            y2={homeScreenPoint.y + 20}
-                        ></line>
-                    </svg>
+                    <HomeCrosshairOverlay
+                        screenPoint={homeScreenPoint}
+                        {mapWidth}
+                        {mapHeight}
+                    />
+                    <MeasureLineOverlay
+                        isActive={isMeasureActive}
+                        startPoint={homeScreenPoint}
+                        targetPoint={measureTargetScreen}
+                        {mapWidth}
+                        {mapHeight}
+                    />
                 {:else}
-                    {#if isMeasureActive && measureTargetScreen}
-                        <svg
-                            class="zone-overlay hud-overlay"
-                            viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-                            preserveAspectRatio="none"
-                        >
-                            <line
-                                class="measure-guide"
-                                x1={mapWidth / 2}
-                                y1={mapHeight / 2}
-                                x2={measureTargetScreen.x}
-                                y2={measureTargetScreen.y}
-                            ></line>
-                            <circle
-                                class="measure-cursor-ring"
-                                cx={measureTargetScreen.x}
-                                cy={measureTargetScreen.y}
-                                r="6"
-                            ></circle>
-                            <line
-                                class="measure-cursor-mark"
-                                x1={measureTargetScreen.x - 10}
-                                y1={measureTargetScreen.y}
-                                x2={measureTargetScreen.x + 10}
-                                y2={measureTargetScreen.y}
-                            ></line>
-                            <line
-                                class="measure-cursor-mark"
-                                x1={measureTargetScreen.x}
-                                y1={measureTargetScreen.y - 10}
-                                x2={measureTargetScreen.x}
-                                y2={measureTargetScreen.y + 10}
-                            ></line>
-                        </svg>
-                    {/if}
+                    <MeasureLineOverlay
+                        isActive={isMeasureActive}
+                        startPoint={{
+                            x: mapWidth / 2,
+                            y: mapHeight / 2,
+                        }}
+                        targetPoint={measureTargetScreen}
+                        {mapWidth}
+                        {mapHeight}
+                    />
                     <div class="crosshair hud-overlay"></div>
                 {/if}
                 <div class="zoom-badge hud-overlay">
@@ -1078,7 +983,6 @@
                             bind:value={f3aRotation}
                             disabled={!isF3AZoneVisible}
                             showStepButtons={false}
-                            onWheel={handleF3ARotationWheel}
                         />
                     </label>
                     <label class="field zone-field">
@@ -1328,51 +1232,6 @@
         height: 100%;
         pointer-events: none;
         shape-rendering: geometricPrecision;
-    }
-
-    .f3a-triangle {
-        fill: none;
-        stroke: #f0d83b;
-        stroke-width: 2.5;
-        stroke-linecap: butt;
-        filter: drop-shadow(0 0 4px rgba(240, 216, 59, 0.45));
-    }
-
-    .f3a-triangle-base {
-        fill: none;
-        stroke: #f0d83b;
-        stroke-width: 1.5;
-        stroke-linecap: butt;
-        filter: drop-shadow(0 0 4px rgba(240, 216, 59, 0.45));
-    }
-
-    .locked-crosshair {
-        stroke: #95ef37;
-        stroke-width: 2;
-        stroke-linecap: butt;
-        filter: drop-shadow(0 0 8px rgba(149, 239, 55, 0.65));
-    }
-
-    .measure-guide {
-        fill: none;
-        stroke: #89dc33;
-        stroke-width: 3;
-        stroke-linecap: butt;
-        stroke-dasharray: 7 6;
-        filter: drop-shadow(0 0 4px rgba(137, 220, 51, 0.5));
-    }
-
-    .measure-cursor-ring {
-        fill: rgba(7, 16, 8, 0.2);
-        stroke: #89dc33;
-        stroke-width: 1.5;
-        filter: drop-shadow(0 0 4px rgba(137, 220, 51, 0.45));
-    }
-
-    .measure-cursor-mark {
-        stroke: #89dc33;
-        stroke-width: 1.5;
-        stroke-linecap: butt;
     }
 
     .crosshair {
