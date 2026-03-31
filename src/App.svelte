@@ -158,13 +158,33 @@
         maplibreglApi = await ensureMapLibreJs();
     }
 
+    async function ensureMapLibreFromLocal() {
+        const [{ default: localMaplibre }] = await Promise.all([
+            import("maplibre-gl"),
+            import("maplibre-gl/dist/maplibre-gl.css"),
+        ]);
+        maplibreglApi = localMaplibre;
+    }
+
+    async function ensureMapLibreApi() {
+        try {
+            await ensureMapLibreFromCdn();
+        } catch (error) {
+            console.warn(
+                "MapLibre CDN unavailable, falling back to local package.",
+                error,
+            );
+            await ensureMapLibreFromLocal();
+        }
+    }
+
     onMount(() => {
         let cancelled = false;
         let watchdog;
 
         const init = async () => {
             try {
-                await ensureMapLibreFromCdn();
+                await ensureMapLibreApi();
                 if (cancelled || !maplibreglApi) return;
 
                 map = new maplibreglApi.Map({
@@ -220,7 +240,7 @@
                     }
                 });
             } catch (error) {
-                console.error("MapLibre CDN loading failed:", error);
+                console.error("MapLibre initialization failed:", error);
             }
         };
 
