@@ -7,6 +7,7 @@
         normalizeBearing,
         destinationPoint,
         calculateF3AZone,
+        getBearingDegrees,
     } from "./lib/geoUtils.js";
     import {
         createExportArtifacts,
@@ -415,20 +416,6 @@
         if (map) {
             map.easeTo({ bearing: 0, duration: 260 });
         }
-    }
-
-    function getBearingDegrees(from, to) {
-        const toRad = (deg) => (deg * Math.PI) / 180;
-        const toDeg = (rad) => (rad * 180) / Math.PI;
-        const lat1 = toRad(from.lat);
-        const lat2 = toRad(to.lat);
-        const deltaLng = toRad(to.lng - from.lng);
-        const y = Math.sin(deltaLng) * Math.cos(lat2);
-        const x =
-            Math.cos(lat1) * Math.sin(lat2) -
-            Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
-
-        return normalizeBearing(toDeg(Math.atan2(y, x)));
     }
 
     function toggleMeasure() {
