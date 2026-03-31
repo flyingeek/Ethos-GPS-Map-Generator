@@ -5,7 +5,6 @@
         normalizeAngle,
         distanceMeters,
         normalizeBearing,
-        destinationPoint,
         calculateF3AZone,
         getBearingDegrees,
     } from "./lib/geoUtils.js";
