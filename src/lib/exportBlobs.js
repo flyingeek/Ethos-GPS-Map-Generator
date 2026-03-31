@@ -1,4 +1,4 @@
-import { toDms } from "./geoUtils.js";
+import { toDms, normalizeBearing, destinationPoint } from "./geoUtils.js";
 
 export function getViewportCorners(map) {
     if (!map) return null;
@@ -38,6 +38,12 @@ function resolveExportCorners(corners, bounds) {
     };
 }
 
+function toLuaGeoPoint(point) {
+    const lat = Number(point.lat.toFixed(8));
+    const lon = Number(point.lng.toFixed(8));
+    return `{ lat = ${lat}, lon = ${lon} }`;
+}
+
 export function createJsonBlob({ map, bounds, rotation }) {
     const corners = getViewportCorners(map);
     const payload = {
@@ -59,6 +65,9 @@ export function createLuaBlob({
     mapWidth,
     mapHeight,
     homePosition,
+    f3aZoneVisible,
+    f3aRotation,
+    f3aBaseDistance,
 }) {
     const corners = getViewportCorners(map);
     const { topLeft, topRight, bottomLeft, bottomRight } = resolveExportCorners(
@@ -66,17 +75,41 @@ export function createLuaBlob({
         bounds,
     );
 
+    const homeLua = homePosition
+        ? toLuaGeoPoint({ lat: homePosition.lat, lng: homePosition.lng })
+        : "nil";
+
+    let f3aZoneLua = "nil";
+    if (homePosition) {
+        const axisBearing = normalizeBearing(Number(f3aRotation) || 0);
+        const halfApexAngleDeg = 60;
+        const baseDistanceM = Math.max(1, Number(f3aBaseDistance) || 150);
+        const sideLength =
+            baseDistanceM / Math.cos((Math.PI * halfApexAngleDeg) / 180);
+
+        const apexGeo = { lat: homePosition.lat, lng: homePosition.lng };
+        const leftGeo = destinationPoint(
+            apexGeo,
+            axisBearing - halfApexAngleDeg,
+            sideLength,
+        );
+        const rightGeo = destinationPoint(
+            apexGeo,
+            axisBearing + halfApexAngleDeg,
+            sideLength,
+        );
+
+        f3aZoneLua = `{ visible = ${Boolean(f3aZoneVisible)}, rotation = ${Number(axisBearing.toFixed(1))}, baseDistance = ${Number(baseDistanceM.toFixed(1))}, apex = ${toLuaGeoPoint(apexGeo)}, left = ${toLuaGeoPoint(leftGeo)}, right = ${toLuaGeoPoint(rightGeo)} }`;
+    }
+
     const lua = `return {
   title = "${mapTitle}",
     generatedAtIso = "${new Date().toISOString()}",
   resolution = { width = ${mapWidth}, height = ${mapHeight} },
     zoom = ${Number(zoom.toFixed(1))},
     rotation = ${Number(rotation.toFixed(1))},
-    homePosition = ${
-            homePosition
-                    ? `{ lat = ${Number(homePosition.lat.toFixed(8))}, lon = ${Number(homePosition.lng.toFixed(8))} }`
-                    : "nil"
-    },
+    homePosition = ${homeLua},
+    f3aZone = ${f3aZoneLua},
   topLeft = { lat = ${topLeft.lat}, lon = ${topLeft.lon} },
   topRight = { lat = ${topRight.lat}, lon = ${topRight.lon} },
   bottomLeft = { lat = ${bottomLeft.lat}, lon = ${bottomLeft.lon} },

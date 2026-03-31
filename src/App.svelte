@@ -1,7 +1,12 @@
 <script>
     import { onMount } from "svelte";
     import { buildRasterStyle, MAP_TYPES } from "./mapStyles.js";
-    import { normalizeAngle, distanceMeters } from "./lib/geoUtils.js";
+    import {
+        normalizeAngle,
+        distanceMeters,
+        normalizeBearing,
+        destinationPoint,
+    } from "./lib/geoUtils.js";
     import {
         createExportArtifacts,
         downloadFile,
@@ -273,6 +278,19 @@
                     }
                 });
 
+                // Keep projected overlays tightly synced during animated zoom/pan frames.
+                map.on("render", () => {
+                    if (!homePosition && !isMeasureActive) {
+                        return;
+                    }
+
+                    updateHomeCrosshairScreenPoint();
+                    updateF3AZoneOverlay();
+                    if (isMeasureActive) {
+                        updateMeasureLine();
+                    }
+                });
+
                 map.on("mousemove", (event) => {
                     if (!isMeasureActive) {
                         return;
@@ -463,36 +481,6 @@
         };
     }
 
-    function normalizeBearing(value) {
-        return ((value % 360) + 360) % 360;
-    }
-
-    function destinationPoint(origin, bearingDeg, distanceM) {
-        const toRad = (deg) => (deg * Math.PI) / 180;
-        const toDeg = (rad) => (rad * 180) / Math.PI;
-        const earthRadiusM = 6371000;
-        const angularDistance = distanceM / earthRadiusM;
-        const bearing = toRad(bearingDeg);
-        const lat1 = toRad(origin.lat);
-        const lon1 = toRad(origin.lng);
-
-        const lat2 = Math.asin(
-            Math.sin(lat1) * Math.cos(angularDistance) +
-                Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearing),
-        );
-        const lon2 =
-            lon1 +
-            Math.atan2(
-                Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(lat1),
-                Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2),
-            );
-
-        return {
-            lat: toDeg(lat2),
-            lng: ((toDeg(lon2) + 540) % 360) - 180,
-        };
-    }
-
     function updateF3AZoneOverlay() {
         if (!map || !homePosition || !isF3AZoneVisible) {
             f3aZoneGeometry = null;
@@ -515,9 +503,7 @@
             sideLength,
         );
 
-        const apexScreen =
-            homeScreenPoint ??
-            map.project([homePosition.lng, homePosition.lat]);
+        const apexScreen = map.project([homePosition.lng, homePosition.lat]);
         const leftScreen = map.project([leftPoint.lng, leftPoint.lat]);
         const rightScreen = map.project([rightPoint.lng, rightPoint.lat]);
 
@@ -581,6 +567,9 @@
                 zoom,
                 baseName,
                 homePosition,
+                f3aZoneVisible: isF3AZoneVisible,
+                f3aRotation,
+                f3aBaseDistance,
             });
 
         const { default: JSZip } = await import("jszip");
@@ -650,6 +639,9 @@
                 zoom,
                 baseName,
                 homePosition,
+                f3aZoneVisible: isF3AZoneVisible,
+                f3aRotation,
+                f3aBaseDistance,
             });
 
         const bmpOk = await saveToSd(bmpBlob, "bitmaps/GPS", `${baseName}.bmp`);
@@ -1315,6 +1307,7 @@
         width: 100%;
         height: 100%;
         pointer-events: none;
+        shape-rendering: geometricPrecision;
     }
 
     .f3a-triangle {

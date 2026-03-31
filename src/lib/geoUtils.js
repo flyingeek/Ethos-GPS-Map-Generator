@@ -24,6 +24,36 @@ export function distanceMeters(lat1, lon1, lat2, lon2) {
     return r * c;
 }
 
+export function normalizeBearing(value) {
+    return ((value % 360) + 360) % 360;
+}
+
+export function destinationPoint(origin, bearingDeg, distanceM) {
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const toDeg = (rad) => (rad * 180) / Math.PI;
+    const earthRadiusM = 6371000;
+    const angularDistance = distanceM / earthRadiusM;
+    const bearing = toRad(bearingDeg);
+    const lat1 = toRad(origin.lat);
+    const lon1 = toRad(origin.lng);
+
+    const lat2 = Math.asin(
+        Math.sin(lat1) * Math.cos(angularDistance) +
+            Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearing),
+    );
+    const lon2 =
+        lon1 +
+        Math.atan2(
+            Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(lat1),
+            Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2),
+        );
+
+    return {
+        lat: toDeg(lat2),
+        lng: ((toDeg(lon2) + 540) % 360) - 180,
+    };
+}
+
 export function toDms(decimal, isLat) {
     const absolute = Math.abs(decimal);
     const degrees = Math.floor(absolute);
