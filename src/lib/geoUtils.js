@@ -104,6 +104,27 @@ export function getBearingDegrees(from, to) {
     return normalizeBearing(toDeg(Math.atan2(y, x)));
 }
 
+export function calculateMeasureState(reference, target, mapRotation) {
+    const distanceM = distanceMeters(
+        reference.lat,
+        reference.lng,
+        target.lat,
+        target.lng,
+    );
+    const bearing = getBearingDegrees(reference, target);
+    const wrappedRelative = normalizeBearing(
+        bearing - normalizeBearing(mapRotation),
+    );
+    const relativeAngle =
+        wrappedRelative > 180 ? wrappedRelative - 360 : wrappedRelative;
+
+    return {
+        distanceM,
+        bearing,
+        relativeAngle,
+    };
+}
+
 export function toDms(decimal, isLat) {
     const absolute = Math.abs(decimal);
     const degrees = Math.floor(absolute);

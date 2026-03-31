@@ -1,13 +1,11 @@
 <script>
     import { onMount } from "svelte";
     import { buildRasterStyle, MAP_TYPES } from "./mapStyles.js";
+    import { normalizeAngle, calculateMeasureState } from "./lib/geoUtils.js";
     import {
-        normalizeAngle,
-        distanceMeters,
-        normalizeBearing,
-        calculateF3AZone,
-        getBearingDegrees,
-    } from "./lib/geoUtils.js";
+        projectLngLat,
+        projectF3AZoneGeometry,
+    } from "./lib/overlayProjection.js";
     import {
         createExportArtifacts,
         downloadFile,
@@ -455,33 +453,15 @@
             return;
         }
 
-        measureDistanceM = distanceMeters(
-            reference.lat,
-            reference.lng,
-            target.lat,
-            target.lng,
-        );
-        measureBearing = getBearingDegrees(reference, target);
-        const wrappedRelative = normalizeBearing(
-            measureBearing - normalizeBearing(rotation),
-        );
-        measureRelativeAngle =
-            wrappedRelative > 180 ? wrappedRelative - 360 : wrappedRelative;
-        measureTargetScreen =
-            measureCursorPoint ?? map.project([target.lng, target.lat]);
+        const measureState = calculateMeasureState(reference, target, rotation);
+        measureDistanceM = measureState.distanceM;
+        measureBearing = measureState.bearing;
+        measureRelativeAngle = measureState.relativeAngle;
+        measureTargetScreen = measureCursorPoint ?? projectLngLat(map, target);
     }
 
     function updateHomeCrosshairScreenPoint() {
-        if (!map || !homePosition) {
-            homeScreenPoint = null;
-            return;
-        }
-
-        const projected = map.project([homePosition.lng, homePosition.lat]);
-        homeScreenPoint = {
-            x: projected.x,
-            y: projected.y,
-        };
+        homeScreenPoint = projectLngLat(map, homePosition);
     }
 
     function refreshProjectedOverlays() {
@@ -490,26 +470,13 @@
     }
 
     function updateF3AZoneOverlay() {
-        if (!map || !homePosition || !isF3AZoneVisible) {
-            f3aZoneGeometry = null;
-            return;
-        }
-
-        const { apex, left, right } = calculateF3AZone(
+        f3aZoneGeometry = projectF3AZoneGeometry(
+            map,
             homePosition,
             f3aRotation,
             f3aBaseDistance,
+            isF3AZoneVisible,
         );
-
-        const apexScreen = map.project([apex.lng, apex.lat]);
-        const leftScreen = map.project([left.lng, left.lat]);
-        const rightScreen = map.project([right.lng, right.lat]);
-
-        f3aZoneGeometry = {
-            apex: apexScreen,
-            left: leftScreen,
-            right: rightScreen,
-        };
     }
 
     function setHomePosition() {
