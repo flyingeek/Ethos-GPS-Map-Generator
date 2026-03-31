@@ -121,6 +121,8 @@
     const MAPLIBRE_VERSION = "5.1.1";
     const MAPLIBRE_CSS_URL = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`;
     const MAPLIBRE_JS_URL = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js`;
+    const SD_BITMAPS_PATH = "bitmaps/GPS";
+    const SD_METADATA_PATH = "documents/user";
 
     let maplibreglApi = null;
 
@@ -610,20 +612,24 @@
                 f3aBaseDistance,
             });
 
-        const bmpOk = await saveToSd(bmpBlob, "bitmaps/GPS", `${baseName}.bmp`);
+        const bmpOk = await saveToSd(
+            bmpBlob,
+            SD_BITMAPS_PATH,
+            `${baseName}.bmp`,
+        );
         const jsonOk = await saveToSd(
             jsonBlob,
-            "documents/user",
+            SD_METADATA_PATH,
             `${baseName}.json`,
         );
         const luaOk = await saveToSd(
             luaBlob,
-            "documents/user",
+            SD_METADATA_PATH,
             `${baseName}.lua`,
         );
         const metaOk = await saveToSd(
             metaBlob,
-            "documents/user",
+            SD_METADATA_PATH,
             `${baseName}_metadata.txt`,
         );
 
@@ -953,8 +959,8 @@
             <section>
                 <h2>Export Notes</h2>
                 <p>
-                    Sync writes the BMP to bitmaps/GPS and JSON plus metadata to
-                    documents/user.
+                    Sync writes the BMP to {SD_BITMAPS_PATH} and JSON plus metadata
+                    to {SD_METADATA_PATH}.
                 </p>
                 <p>
                     ZIP export includes the same three files and now stores
