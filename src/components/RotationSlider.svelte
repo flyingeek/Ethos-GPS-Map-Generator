@@ -5,12 +5,16 @@
     export let label = "Rotation";
     export let disabled = false;
     export let showStepButtons = false;
+    export let showResetButton = true;
     export let stepSize = 15;
     export let onStepClick = null;
     export let onReset = null;
     export let showReadout = true;
     export let readoutSlot = false;
     export let layout = "vertical"; // "vertical" or "horizontal"
+    export let inlineLabel = true;
+    export let horizontalSliderWidth = 280;
+    export let horizontalWrap = true;
 
     function handleStep(delta) {
         if (onStepClick) {
@@ -37,43 +41,67 @@
 <div
     class="rotation-slider"
     class:horizontal={layout === "horizontal"}
+    class:stacked-label={layout === "horizontal" && !inlineLabel}
+    class:no-wrap={layout === "horizontal" && !horizontalWrap}
     {disabled}
+    style={`--horizontal-slider-width: ${typeof horizontalSliderWidth === "number" ? `${horizontalSliderWidth}px` : horizontalSliderWidth}`}
 >
     {#if layout === "horizontal"}
-        <!-- Horizontal layout for map controls -->
-        <span class="label">{label}</span>
-        <button type="button" on:click={() => handleStep(-stepSize)}>
-            ⟳ -{stepSize}°
-        </button>
-        <input
-            type="range"
-            min="-180"
-            max="180"
-            step="0.1"
-            bind:value
-            {disabled}
-        />
-        <button type="button" on:click={() => handleStep(stepSize)}>
-            +{stepSize}° ⟲
-        </button>
-        <button type="button" class="ghost" on:click={handleReset}>
-            Reset
-        </button>
-        <span
-            class="bearing"
-            title="Scroll to adjust by 0.1°"
-            on:wheel|preventDefault={handleWheel}
-            >{Number(value).toFixed(1)}°</span
-        >
-        <span
-            class="wheel-hint"
-            aria-hidden="true"
-            title="Use mouse wheel here"
-        >
-            🖱️
-        </span>
+        {#if inlineLabel}
+            <span class="label">{label}</span>
+        {/if}
+        <div class="horizontal-controls">
+            {#if !inlineLabel}
+                <span class="label">{label}</span>
+            {/if}
+            <div class="horizontal-row">
+                {#if showStepButtons}
+                    <button
+                        type="button"
+                        on:click={() => handleStep(-stepSize)}
+                    >
+                        ⟳ -{stepSize}°
+                    </button>
+                {/if}
+                <input
+                    type="range"
+                    min="-180"
+                    max="180"
+                    step="0.1"
+                    bind:value
+                    {disabled}
+                />
+                {#if showStepButtons}
+                    <button type="button" on:click={() => handleStep(stepSize)}>
+                        +{stepSize}° ⟲
+                    </button>
+                {/if}
+                {#if showResetButton}
+                    <button
+                        type="button"
+                        class="ghost"
+                        on:click={handleReset}
+                        {disabled}
+                    >
+                        Reset
+                    </button>
+                {/if}
+                <span
+                    class="bearing"
+                    title="Scroll to adjust by 0.1°"
+                    on:wheel|preventDefault={handleWheel}
+                    >{Number(value).toFixed(1)}°</span
+                >
+                <span
+                    class="wheel-hint"
+                    aria-hidden="true"
+                    title="Use mouse wheel here"
+                >
+                    🖱️
+                </span>
+            </div>
+        </div>
     {:else}
-        <!-- Vertical layout for F3A zone controls -->
         <div class="slider-head">
             <span class="label">{label}</span>
             {#if readoutSlot}
@@ -104,14 +132,23 @@
             {disabled}
         />
 
-        {#if showStepButtons}
+        {#if showStepButtons || showResetButton}
             <div class="button-group">
-                <button type="button" on:click={() => handleStep(stepSize)}>
-                    +{stepSize}° ⟲
-                </button>
-                <button type="button" class="ghost" on:click={handleReset}>
-                    Reset
-                </button>
+                {#if showStepButtons}
+                    <button type="button" on:click={() => handleStep(stepSize)}>
+                        +{stepSize}° ⟲
+                    </button>
+                {/if}
+                {#if showResetButton}
+                    <button
+                        type="button"
+                        class="ghost"
+                        on:click={handleReset}
+                        {disabled}
+                    >
+                        Reset
+                    </button>
+                {/if}
             </div>
         {/if}
     {/if}
@@ -128,6 +165,32 @@
         flex-direction: row;
         align-items: center;
         flex-wrap: wrap;
+    }
+
+    .rotation-slider.horizontal.stacked-label {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .rotation-slider.horizontal.no-wrap {
+        flex-wrap: nowrap;
+    }
+
+    .horizontal-controls {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+    }
+
+    .horizontal-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: inherit;
+    }
+
+    .rotation-slider.horizontal.no-wrap .horizontal-row {
+        flex-wrap: nowrap;
     }
 
     .rotation-slider[disabled] input[type="range"] {
@@ -167,8 +230,8 @@
     }
 
     .rotation-slider.horizontal input[type="range"] {
-        width: 280px;
-        flex: 0 0 280px;
+        width: var(--horizontal-slider-width);
+        flex: 0 0 var(--horizontal-slider-width);
     }
 
     input[type="range"]::-webkit-slider-runnable-track {
