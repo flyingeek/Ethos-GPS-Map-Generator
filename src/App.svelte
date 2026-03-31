@@ -880,6 +880,11 @@
                         6,
                     )}
                 </div>
+                {#if isMeasureActive}
+                    <div class="measure-hint">
+                        Right-click to exit measure mode quickly
+                    </div>
+                {/if}
             </div>
 
             <SearchPanel {map} {mapWidth} />
@@ -1250,6 +1255,21 @@
         top: 46px;
         padding: 5px 9px;
         cursor: pointer;
+    }
+
+    .measure-hint {
+        position: absolute;
+        left: 20px;
+        bottom: -2px;
+        color: #8acf35;
+        font-family: "Space Mono", monospace;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-shadow:
+            -1px -1px #000,
+            1px -1px #000,
+            -1px 1px #000,
+            1px 1px #000;
     }
 
     .measure-btn.active {
