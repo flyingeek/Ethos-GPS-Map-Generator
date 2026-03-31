@@ -71,8 +71,7 @@
         isF3AZoneVisible;
         f3aRotation;
         f3aBaseDistance;
-        updateHomeCrosshairScreenPoint();
-        updateF3AZoneOverlay();
+        refreshProjectedOverlays();
     }
 
     $: if (mapViewport) {
@@ -81,8 +80,7 @@
         if (map) {
             queueMicrotask(() => {
                 map.resize();
-                updateHomeCrosshairScreenPoint();
-                updateF3AZoneOverlay();
+                refreshProjectedOverlays();
             });
         }
     }
@@ -98,8 +96,7 @@
         map.once("styledata", () => {
             map.jumpTo(state);
             refreshBounds();
-            updateHomeCrosshairScreenPoint();
-            updateF3AZoneOverlay();
+            refreshProjectedOverlays();
         });
     }
 
@@ -254,15 +251,13 @@
                 map.on("load", () => {
                     refreshBounds();
                     refreshCenterAndZoom();
-                    updateHomeCrosshairScreenPoint();
-                    updateF3AZoneOverlay();
+                    refreshProjectedOverlays();
                 });
 
                 map.on("move", () => {
                     refreshCenterAndZoom();
                     refreshBounds();
-                    updateHomeCrosshairScreenPoint();
-                    updateF3AZoneOverlay();
+                    refreshProjectedOverlays();
                     if (isMeasureActive) {
                         updateMeasureLine();
                     }
@@ -271,8 +266,7 @@
                 map.on("zoom", () => {
                     refreshCenterAndZoom();
                     refreshBounds();
-                    updateHomeCrosshairScreenPoint();
-                    updateF3AZoneOverlay();
+                    refreshProjectedOverlays();
                     if (isMeasureActive) {
                         updateMeasureLine();
                     }
@@ -280,8 +274,7 @@
 
                 map.on("rotate", () => {
                     rotation = Number(map.getBearing().toFixed(1));
-                    updateHomeCrosshairScreenPoint();
-                    updateF3AZoneOverlay();
+                    refreshProjectedOverlays();
                     if (isMeasureActive) {
                         updateMeasureLine();
                     }
@@ -304,8 +297,7 @@
                         };
                     }
 
-                    updateHomeCrosshairScreenPoint();
-                    updateF3AZoneOverlay();
+                    refreshProjectedOverlays();
                     if (isMeasureActive) {
                         updateMeasureLine();
                     }
@@ -492,6 +484,11 @@
         };
     }
 
+    function refreshProjectedOverlays() {
+        updateHomeCrosshairScreenPoint();
+        updateF3AZoneOverlay();
+    }
+
     function updateF3AZoneOverlay() {
         if (!map || !homePosition || !isF3AZoneVisible) {
             f3aZoneGeometry = null;
@@ -519,7 +516,7 @@
         if (!map) return;
         const c = map.getCenter();
         homePosition = { lat: c.lat, lng: c.lng };
-        updateHomeCrosshairScreenPoint();
+        refreshProjectedOverlays();
         if (isMeasureActive) {
             measureStart = homePosition;
             updateMeasureLine();
@@ -528,12 +525,11 @@
 
     function clearHomePosition() {
         homePosition = null;
-        homeScreenPoint = null;
         if (isMeasureActive) {
             stopMeasure();
         }
         isF3AZoneVisible = false;
-        updateF3AZoneOverlay();
+        refreshProjectedOverlays();
     }
 
     function toggleF3AZone() {
@@ -541,12 +537,12 @@
             f3aRotation = Number(map.getBearing().toFixed(1));
         }
         isF3AZoneVisible = !isF3AZoneVisible;
-        updateF3AZoneOverlay();
+        refreshProjectedOverlays();
     }
 
     function resetF3ARotation() {
         f3aRotation = map ? Number(map.getBearing().toFixed(1)) : 0;
-        updateF3AZoneOverlay();
+        refreshProjectedOverlays();
     }
 
     function cleanBaseName() {
@@ -696,8 +692,7 @@
                 zoom: p.zoom,
                 bearing: p.rotation,
             });
-            updateHomeCrosshairScreenPoint();
-            updateF3AZoneOverlay();
+            refreshProjectedOverlays();
         } else {
             center = { lat: p.center.lat, lng: p.center.lng };
             zoom = p.zoom;
