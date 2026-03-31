@@ -5,6 +5,7 @@
     import { buildRasterStyle, MAP_TYPES } from "./mapStyles.js";
     import { normalizeAngle, distanceMeters } from "./lib/geoUtils.js";
     import { createBmpBlob } from "./lib/bmpExport.js";
+    import ProjectShelf from "./components/ProjectShelf.svelte";
     import SearchPanel from "./components/SearchPanel.svelte";
     import {
         createJsonBlob,
@@ -36,9 +37,6 @@
     let isMeasureActive = false;
     let measureStart = null;
     let measureDistanceM = 0;
-
-    let savedProjects = [];
-    let selectedSaveIndex = -1;
 
     $: mapWidth =
         resolution === "custom"
@@ -94,8 +92,6 @@
     const measuringFeatureId = "measure-line";
 
     onMount(() => {
-        loadProjectsFromStorage();
-
         map = new maplibregl.Map({
             container: mapContainer,
             style: buildRasterStyle(mapType),
@@ -431,69 +427,8 @@
             syncMessage = "Sync To SD";
         }, 1800);
     }
-
-    // ─── Local project storage ────────────────────────────────────────────────
-
-    function loadProjectsFromStorage() {
-        try {
-            const raw = localStorage.getItem("ethos-gps-projects");
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed)) {
-                    savedProjects = parsed.slice(0, 5);
-                }
-            }
-        } catch {
-            savedProjects = [];
-        }
-    }
-
-    function persistProjects() {
-        try {
-            localStorage.setItem(
-                "ethos-gps-projects",
-                JSON.stringify(savedProjects),
-            );
-        } catch {
-            // storage full or unavailable
-        }
-    }
-
-    function saveProject() {
-        const name = mapTitle.trim() || "EthosMap";
-        const snapshot = {
-            name,
-            savedAt: new Date().toISOString(),
-            mapTitle,
-            resolution,
-            customW,
-            customH,
-            mapType,
-            zoomLock,
-            rotation,
-            center: { lat: center.lat, lng: center.lng },
-            zoom,
-        };
-
-        const existingIndex = savedProjects.findIndex((p) => p.name === name);
-        if (existingIndex >= 0) {
-            savedProjects[existingIndex] = snapshot;
-            savedProjects = [...savedProjects];
-            selectedSaveIndex = existingIndex;
-        } else if (savedProjects.length < 5) {
-            savedProjects = [...savedProjects, snapshot];
-            selectedSaveIndex = savedProjects.length - 1;
-        } else {
-            // Max 5 reached — replace the oldest entry
-            savedProjects = [snapshot, ...savedProjects.slice(1)];
-            selectedSaveIndex = 0;
-        }
-
-        persistProjects();
-    }
-
-    function loadProject(index) {
-        const p = savedProjects[index];
+    function handleLoadProject(event) {
+        const p = event.detail?.project;
         if (!p) return;
 
         mapTitle = p.mapTitle ?? p.name;
@@ -514,12 +449,6 @@
             center = { lat: p.center.lat, lng: p.center.lng };
             zoom = p.zoom;
         }
-    }
-
-    function deleteSavedProject(index) {
-        savedProjects = savedProjects.filter((_, i) => i !== index);
-        selectedSaveIndex = -1;
-        persistProjects();
     }
 </script>
 
@@ -545,36 +474,20 @@
             <p>Svelte Edition with rotation-aware exports</p>
         </div>
 
-        <div class="project-shelf">
-            <span class="project-shelf-label">Projects</span>
-            <select class="project-select" bind:value={selectedSaveIndex}>
-                <option value={-1} disabled
-                    >{savedProjects.length === 0
-                        ? "No saved projects"
-                        : `${savedProjects.length}/5 saved`}</option
-                >
-                {#each savedProjects as p, i}
-                    <option value={i}>{p.name}</option>
-                {/each}
-            </select>
-            <button
-                class="ghost"
-                disabled={selectedSaveIndex < 0}
-                on:click={() => loadProject(selectedSaveIndex)}
-                title="Load selected project">Load</button
-            >
-            <button
-                class="ghost del-btn"
-                disabled={selectedSaveIndex < 0}
-                on:click={() => deleteSavedProject(selectedSaveIndex)}
-                title="Delete selected project">🗑</button
-            >
-            <button
-                class="ok"
-                on:click={saveProject}
-                title="Save current project">Save</button
-            >
-        </div>
+        <ProjectShelf
+            projectState={{
+                mapTitle,
+                resolution,
+                customW,
+                customH,
+                mapType,
+                zoomLock,
+                rotation,
+                center,
+                zoom,
+            }}
+            on:loadproject={handleLoadProject}
+        />
     </header>
 
     <section class="panel controls">
@@ -770,32 +683,6 @@
         color: #adbbc2;
         font-family: "Space Mono", monospace;
         font-size: 0.8rem;
-    }
-
-    .project-shelf {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-    }
-
-    .project-shelf-label {
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #8da0ab;
-        font-size: 0.7rem;
-        font-weight: 700;
-    }
-
-    .project-select {
-        min-width: 160px;
-        max-width: 220px;
-    }
-
-    .del-btn {
-        min-width: unset;
-        padding: 8px 10px;
     }
 
     .panel {
