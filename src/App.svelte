@@ -922,14 +922,15 @@
                     while moving the map.
                 </p>
                 <div class="home-actions">
-                    <button class="ok" on:click={setHomePosition}
-                        >Set Home Position</button
-                    >
-                    <button
-                        class="ghost"
-                        on:click={clearHomePosition}
-                        disabled={!homePosition}>Clear Home</button
-                    >
+                    {#if homePosition}
+                        <button class="warn" on:click={clearHomePosition}
+                            >Clear Home</button
+                        >
+                    {:else}
+                        <button class="ok" on:click={setHomePosition}
+                            >Set Home Position</button
+                        >
+                    {/if}
                 </div>
                 <p class="home-coords">
                     {#if homePosition}
@@ -960,16 +961,17 @@
                                 ? "Hide Zone"
                                 : "Show Zone"}</button
                         >
-                        <button class="ghost" on:click={resetF3ARotation}
-                            >Reset</button
-                        >
                     </div>
-                    <label class="field">
+                    <label class="field zone-rotation-field">
                         <RotationSlider
                             label="Rotation"
                             bind:value={f3aRotation}
                             disabled={!isF3AZoneVisible}
-                            showStepButtons={false}
+                            onReset={resetF3ARotation}
+                            layout="horizontal"
+                            inlineLabel={false}
+                            horizontalSliderWidth={110}
+                            horizontalWrap={false}
                         />
                     </label>
                     <label class="field zone-field">
@@ -1080,8 +1082,7 @@
         min-width: 90px;
     }
 
-    .field > span,
-    .rotate-label {
+    .field > span {
         text-transform: uppercase;
         letter-spacing: 0.08em;
         color: #8da0ab;
@@ -1212,15 +1213,6 @@
         height: 100%;
     }
 
-    .zone-overlay {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        shape-rendering: geometricPrecision;
-    }
-
     .crosshair {
         position: absolute;
         left: 50%;
@@ -1336,10 +1328,8 @@
         background: rgba(37, 37, 10, 0.18);
     }
 
-    .zone-rotation-readout {
-        display: flex;
-        align-items: center;
-        gap: 8px;
+    .zone-rotation-field {
+        min-width: unset;
     }
 
     .home-actions {
