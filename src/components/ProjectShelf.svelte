@@ -4,6 +4,7 @@
     export let projectState;
 
     const dispatch = createEventDispatcher();
+    const MAX_SAVED_PROJECTS = 10;
 
     let savedProjects = [];
     let selectedSaveIndex = -1;
@@ -26,7 +27,7 @@
             if (raw) {
                 const parsed = JSON.parse(raw);
                 if (Array.isArray(parsed)) {
-                    savedProjects = parsed.slice(0, 5);
+                    savedProjects = parsed.slice(0, MAX_SAVED_PROJECTS);
                 }
             }
         } catch {
@@ -81,11 +82,11 @@
             savedProjects[existingIndex] = snapshot;
             savedProjects = [...savedProjects];
             selectedSaveIndex = existingIndex;
-        } else if (savedProjects.length < 5) {
+        } else if (savedProjects.length < MAX_SAVED_PROJECTS) {
             savedProjects = [...savedProjects, snapshot];
             selectedSaveIndex = savedProjects.length - 1;
         } else {
-            // Max 5 reached — replace the oldest entry
+            // Max reached — replace the oldest entry
             savedProjects = [snapshot, ...savedProjects.slice(1)];
             selectedSaveIndex = 0;
         }
@@ -122,7 +123,7 @@
         <option value={-1} disabled
             >{savedProjects.length === 0
                 ? "No saved projects"
-                : `${savedProjects.length}/5 saved`}</option
+                : `${savedProjects.length}/${MAX_SAVED_PROJECTS} saved`}</option
         >
         {#each savedProjects as p, i}
             <option value={i}>{p.name}</option>
