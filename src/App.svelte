@@ -13,6 +13,7 @@
     } from "./lib/exportActions.js";
     import ProjectShelf from "./components/ProjectShelf.svelte";
     import SearchPanel from "./components/SearchPanel.svelte";
+    import RotationSlider from "./components/RotationSlider.svelte";
 
     let map;
     let mapContainer;
@@ -832,36 +833,16 @@
         </div>
 
         <div class="row rotate-row">
-            <div class="rotate-controls">
-                <span class="rotate-label">Rotation</span>
-                <button type="button" on:click={() => rotateStep(-15)}
-                    >⟳ -15°</button
-                >
-                <input
-                    type="range"
-                    min="-180"
-                    max="180"
-                    step="0.1"
-                    bind:value={rotation}
-                />
-                <button type="button" on:click={() => rotateStep(15)}
-                    >+15° ⟲</button
-                >
-                <button type="button" class="ghost" on:click={resetRotation}
-                    >Reset</button
-                >
-                <span
-                    class="bearing"
-                    title="Scroll to adjust by 0.1°"
-                    on:wheel|preventDefault={handleRotationWheel}
-                    >{rotation.toFixed(1)}°</span
-                >
-                <span
-                    class="wheel-hint"
-                    aria-hidden="true"
-                    title="Use mouse wheel here">🖱️</span
-                >
-            </div>
+            <RotationSlider
+                label="Rotation"
+                bind:value={rotation}
+                showStepButtons={true}
+                stepSize={15}
+                onStepClick={rotateStep}
+                onReset={resetRotation}
+                onWheel={handleRotationWheel}
+                layout="horizontal"
+            />
 
             <div class="action-controls">
                 {#if supportsSdSync}
@@ -1100,30 +1081,13 @@
                             >Reset</button
                         >
                     </div>
-                    <label class="field zone-field">
-                        <div class="zone-field-head">
-                            <span>Rotation</span>
-                            <div class="zone-rotation-readout">
-                                <span
-                                    class="bearing"
-                                    title="Scroll to adjust by 0.1°"
-                                    on:wheel|preventDefault={handleF3ARotationWheel}
-                                    >{Number(f3aRotation).toFixed(1)}°</span
-                                >
-                                <span
-                                    class="wheel-hint"
-                                    aria-hidden="true"
-                                    title="Use mouse wheel here">🖱️</span
-                                >
-                            </div>
-                        </div>
-                        <input
-                            type="range"
-                            min="-180"
-                            max="180"
-                            step="0.1"
+                    <label class="field">
+                        <RotationSlider
+                            label="Rotation"
                             bind:value={f3aRotation}
                             disabled={!isF3AZoneVisible}
+                            showStepButtons={false}
+                            onWheel={handleF3ARotationWheel}
                         />
                     </label>
                     <label class="field zone-field">
@@ -1305,68 +1269,6 @@
         justify-content: space-between;
         align-items: center;
         gap: 12px;
-    }
-
-    .rotate-controls {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .rotate-controls input[type="range"] {
-        width: 280px;
-        padding: 0;
-        accent-color: #4ea1ff;
-        -webkit-appearance: none;
-        appearance: none;
-        background: transparent;
-    }
-
-    .rotate-controls input[type="range"]::-webkit-slider-runnable-track {
-        height: 6px;
-        border-radius: 999px;
-        background: linear-gradient(90deg, #2f71c9, #68b2ff);
-    }
-
-    .rotate-controls input[type="range"]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        width: 14px;
-        height: 14px;
-        margin-top: -4px;
-        border-radius: 50%;
-        background: #d9efff;
-        border: 1px solid #2d6cc0;
-        box-shadow: 0 0 6px rgba(78, 161, 255, 0.45);
-    }
-
-    .rotate-controls input[type="range"]::-moz-range-track {
-        height: 6px;
-        border-radius: 999px;
-        background: linear-gradient(90deg, #2f71c9, #68b2ff);
-    }
-
-    .rotate-controls input[type="range"]::-moz-range-thumb {
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background: #d9efff;
-        border: 1px solid #2d6cc0;
-        box-shadow: 0 0 6px rgba(78, 161, 255, 0.45);
-    }
-
-    .bearing {
-        min-width: 52px;
-        text-align: right;
-        font-family: "Space Mono", monospace;
-        color: #9de44d;
-    }
-
-    .wheel-hint {
-        font-size: 0.9rem;
-        opacity: 0.75;
-        user-select: none;
-        filter: drop-shadow(0 0 4px rgba(157, 228, 77, 0.35));
     }
 
     .action-controls {
@@ -1595,30 +1497,6 @@
         border: 1px solid #3a4a1b;
         border-radius: 10px;
         background: rgba(37, 37, 10, 0.18);
-    }
-
-    .zone-field {
-        min-width: unset;
-    }
-
-    .zone-field-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-    }
-
-    .zone-field-head > span {
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #8da0ab;
-        font-size: 0.7rem;
-        font-weight: 700;
-    }
-
-    .zone-field input[type="range"] {
-        width: 100%;
-        padding: 0;
     }
 
     .zone-rotation-readout {
