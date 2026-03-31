@@ -1,5 +1,6 @@
 <script>
     import { normalizeAngle } from "../lib/geoUtils.js";
+    import MouseWheelIcon from "./MouseWheelIcon.svelte";
 
     export let value = 0;
     export let label = "Rotation";
@@ -9,9 +10,6 @@
     export let stepSize = 15;
     export let onStepClick = null;
     export let onReset = null;
-    export let showReadout = true;
-    export let readoutSlot = false;
-    export let layout = "vertical"; // "vertical" or "horizontal"
     export let inlineLabel = true;
     export let horizontalSliderWidth = 280;
     export let horizontalWrap = true;
@@ -40,139 +38,74 @@
 
 <div
     class="rotation-slider"
-    class:horizontal={layout === "horizontal"}
-    class:stacked-label={layout === "horizontal" && !inlineLabel}
-    class:no-wrap={layout === "horizontal" && !horizontalWrap}
+    class:stacked-label={!inlineLabel}
+    class:no-wrap={!horizontalWrap}
     {disabled}
     style={`--horizontal-slider-width: ${typeof horizontalSliderWidth === "number" ? `${horizontalSliderWidth}px` : horizontalSliderWidth}`}
 >
-    {#if layout === "horizontal"}
-        {#if inlineLabel}
-            <span class="label">{label}</span>
-        {/if}
-        <div class="horizontal-controls">
-            {#if !inlineLabel}
-                <span class="label">{label}</span>
-            {/if}
-            <div class="horizontal-row">
-                {#if showStepButtons}
-                    <button
-                        type="button"
-                        on:click={() => handleStep(-stepSize)}
-                    >
-                        ⟳ -{stepSize}°
-                    </button>
-                {/if}
-                <input
-                    type="range"
-                    min="-180"
-                    max="180"
-                    step="0.1"
-                    bind:value
-                    {disabled}
-                />
-                {#if showStepButtons}
-                    <button type="button" on:click={() => handleStep(stepSize)}>
-                        +{stepSize}° ⟲
-                    </button>
-                {/if}
-                {#if showResetButton}
-                    <button
-                        type="button"
-                        class="ghost"
-                        on:click={handleReset}
-                        {disabled}
-                    >
-                        Reset
-                    </button>
-                {/if}
-                <span
-                    class="bearing"
-                    title="Scroll to adjust by 0.1°"
-                    on:wheel|preventDefault={handleWheel}
-                    >{Number(value).toFixed(1)}°</span
-                >
-                <span
-                    class="wheel-hint"
-                    aria-hidden="true"
-                    title="Use mouse wheel here"
-                >
-                    🖱️
-                </span>
-            </div>
-        </div>
-    {:else}
-        <div class="slider-head">
-            <span class="label">{label}</span>
-            {#if readoutSlot}
-                <slot name="readout" />
-            {:else if showReadout}
-                <div class="readout-inline">
-                    <span
-                        class="bearing"
-                        title="Scroll to adjust by 0.1°"
-                        on:wheel|preventDefault={handleWheel}
-                        >{Number(value).toFixed(1)}°</span
-                    >
-                    <span
-                        class="wheel-hint"
-                        aria-hidden="true"
-                        title="Use mouse wheel here">🖱️</span
-                    >
-                </div>
-            {/if}
-        </div>
-
-        <input
-            type="range"
-            min="-180"
-            max="180"
-            step="0.1"
-            bind:value
-            {disabled}
-        />
-
-        {#if showStepButtons || showResetButton}
-            <div class="button-group">
-                {#if showStepButtons}
-                    <button type="button" on:click={() => handleStep(stepSize)}>
-                        +{stepSize}° ⟲
-                    </button>
-                {/if}
-                {#if showResetButton}
-                    <button
-                        type="button"
-                        class="ghost"
-                        on:click={handleReset}
-                        {disabled}
-                    >
-                        Reset
-                    </button>
-                {/if}
-            </div>
-        {/if}
+    {#if inlineLabel}
+        <span class="label">{label}</span>
     {/if}
+    <div class="horizontal-controls">
+        {#if !inlineLabel}
+            <span class="label">{label}</span>
+        {/if}
+        <div class="horizontal-row">
+            {#if showStepButtons}
+                <button type="button" on:click={() => handleStep(-stepSize)}>
+                    -{stepSize}° ⟳
+                </button>
+            {/if}
+            <input
+                type="range"
+                min="-180"
+                max="180"
+                step="0.1"
+                bind:value
+                {disabled}
+            />
+            {#if showStepButtons}
+                <button type="button" on:click={() => handleStep(stepSize)}>
+                    ⟲ +{stepSize}°
+                </button>
+            {/if}
+            {#if showResetButton}
+                <button
+                    type="button"
+                    class="ghost"
+                    on:click={handleReset}
+                    {disabled}
+                >
+                    Reset
+                </button>
+            {/if}
+            <span
+                class="bearing"
+                title="Scroll to adjust by 0.1°"
+                on:wheel|preventDefault={handleWheel}
+            >
+                {Number(value).toFixed(1)}°
+                <MouseWheelIcon size={18} />
+            </span>
+        </div>
+    </div>
 </div>
 
 <style>
     .rotation-slider {
         display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .rotation-slider.horizontal {
         flex-direction: row;
         align-items: center;
         flex-wrap: wrap;
+        gap: 8px;
     }
 
-    .rotation-slider.horizontal.stacked-label {
+    .rotation-slider.stacked-label {
         flex-direction: column;
         align-items: stretch;
     }
 
-    .rotation-slider.horizontal.no-wrap {
+    .rotation-slider.no-wrap {
         flex-wrap: nowrap;
     }
 
@@ -189,7 +122,7 @@
         flex-wrap: inherit;
     }
 
-    .rotation-slider.horizontal.no-wrap .horizontal-row {
+    .rotation-slider.no-wrap .horizontal-row {
         flex-wrap: nowrap;
     }
 
@@ -198,25 +131,12 @@
         cursor: not-allowed;
     }
 
-    .slider-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-    }
-
     .label {
         text-transform: uppercase;
         letter-spacing: 0.08em;
         color: #8da0ab;
         font-size: 0.7rem;
         font-weight: 700;
-    }
-
-    .readout-inline {
-        display: flex;
-        align-items: center;
-        gap: 4px;
     }
 
     input[type="range"] {
@@ -229,7 +149,7 @@
         cursor: pointer;
     }
 
-    .rotation-slider.horizontal input[type="range"] {
+    .rotation-slider input[type="range"] {
         width: var(--horizontal-slider-width);
         flex: 0 0 var(--horizontal-slider-width);
     }
@@ -276,20 +196,20 @@
         cursor: grabbing;
     }
 
-    .button-group {
-        display: flex;
-        gap: 8px;
-    }
-
     .bearing {
         min-width: 52px;
-        text-align: right;
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 2px;
         font-family: "Space Mono", monospace;
         color: #9de44d;
     }
 
-    .wheel-hint {
-        font-size: 0.9rem;
+    .bearing :global(svg) {
+        width: 18px;
+        height: 18px;
+        flex: 0 0 18px;
         opacity: 0.75;
         user-select: none;
         filter: drop-shadow(0 0 4px rgba(157, 228, 77, 0.35));

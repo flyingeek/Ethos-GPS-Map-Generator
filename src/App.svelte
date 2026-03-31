@@ -771,7 +771,6 @@
                 stepSize={15}
                 onStepClick={rotateStep}
                 onReset={resetRotation}
-                layout="horizontal"
             />
 
             <div class="action-controls">
@@ -934,7 +933,6 @@
                             bind:value={f3aRotation}
                             disabled={!isF3AZoneVisible}
                             onReset={resetF3ARotation}
-                            layout="horizontal"
                             inlineLabel={false}
                             horizontalSliderWidth={110}
                             horizontalWrap={false}
