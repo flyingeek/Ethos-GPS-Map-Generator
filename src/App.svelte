@@ -4,7 +4,10 @@
     import maplibregl from "maplibre-gl";
     import { buildRasterStyle, MAP_TYPES } from "./mapStyles.js";
     import { normalizeAngle, distanceMeters } from "./lib/geoUtils.js";
-    import { createExportArtifacts } from "./lib/exportActions.js";
+    import {
+        createExportArtifacts,
+        downloadFile,
+    } from "./lib/exportActions.js";
     import ProjectShelf from "./components/ProjectShelf.svelte";
     import SearchPanel from "./components/SearchPanel.svelte";
     import "maplibre-gl/dist/maplibre-gl.css";
@@ -276,15 +279,6 @@
         return (mapTitle.trim() || "EthosMap")
             .replace(/[^a-zA-Z0-9]/g, "_")
             .slice(0, 24);
-    }
-
-    function downloadFile(blob, filename) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
     }
 
     async function handleDownloadZip() {

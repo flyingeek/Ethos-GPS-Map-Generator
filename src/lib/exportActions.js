@@ -1,6 +1,15 @@
 import { createBmpBlob } from "./bmpExport.js";
 import { createJsonBlob, createLuaBlob, createMetadataBlob } from "./exportBlobs.js";
 
+export function downloadFile(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
 /**
  * Build all export files once so callers (ZIP / SD sync) can share the same flow.
  */
