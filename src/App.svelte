@@ -919,7 +919,7 @@
                             class={isF3AZoneVisible ? "warn" : "ok"}
                             on:click={toggleF3AZone}
                             >{isF3AZoneVisible
-                                ? "Hide Zone"
+                                ? "Remove Zone"
                                 : "Show Zone"}</button
                         >
                     </div>
