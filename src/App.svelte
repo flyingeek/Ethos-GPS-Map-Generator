@@ -4,14 +4,9 @@
     import maplibregl from "maplibre-gl";
     import { buildRasterStyle, MAP_TYPES } from "./mapStyles.js";
     import { normalizeAngle, distanceMeters } from "./lib/geoUtils.js";
-    import { createBmpBlob } from "./lib/bmpExport.js";
+    import { createExportArtifacts } from "./lib/exportActions.js";
     import ProjectShelf from "./components/ProjectShelf.svelte";
     import SearchPanel from "./components/SearchPanel.svelte";
-    import {
-        createJsonBlob,
-        createLuaBlob,
-        createMetadataBlob,
-    } from "./lib/exportBlobs.js";
     import "maplibre-gl/dist/maplibre-gl.css";
 
     let map;
@@ -294,32 +289,17 @@
 
     async function handleDownloadZip() {
         const baseName = cleanBaseName();
-        const bmpBlob = await createBmpBlob(
-            map,
-            mapViewport,
-            mapWidth,
-            mapHeight,
-            16,
-        );
-        const jsonBlob = createJsonBlob({ map, bounds, rotation });
-        const luaBlob = createLuaBlob({
-            map,
-            bounds,
-            rotation,
-            zoom,
-            mapTitle: baseName,
-            mapWidth,
-            mapHeight,
-        });
-        const metaBlob = createMetadataBlob({
-            map,
-            bounds,
-            rotation,
-            zoom,
-            mapTitle: baseName,
-            mapWidth,
-            mapHeight,
-        });
+        const { bmpBlob, jsonBlob, luaBlob, metaBlob } =
+            await createExportArtifacts({
+                map,
+                mapViewport,
+                mapWidth,
+                mapHeight,
+                bounds,
+                rotation,
+                zoom,
+                baseName,
+            });
 
         const zip = new JSZip();
         zip.file(`${baseName}.bmp`, bmpBlob);
@@ -376,32 +356,17 @@
         const baseName = cleanBaseName();
 
         syncMessage = "Syncing...";
-        const bmpBlob = await createBmpBlob(
-            map,
-            mapViewport,
-            mapWidth,
-            mapHeight,
-            16,
-        );
-        const jsonBlob = createJsonBlob({ map, bounds, rotation });
-        const luaBlob = createLuaBlob({
-            map,
-            bounds,
-            rotation,
-            zoom,
-            mapTitle: baseName,
-            mapWidth,
-            mapHeight,
-        });
-        const metaBlob = createMetadataBlob({
-            map,
-            bounds,
-            rotation,
-            zoom,
-            mapTitle: baseName,
-            mapWidth,
-            mapHeight,
-        });
+        const { bmpBlob, jsonBlob, luaBlob, metaBlob } =
+            await createExportArtifacts({
+                map,
+                mapViewport,
+                mapWidth,
+                mapHeight,
+                bounds,
+                rotation,
+                zoom,
+                baseName,
+            });
 
         const bmpOk = await saveToSd(bmpBlob, "bitmaps/GPS", `${baseName}.bmp`);
         const jsonOk = await saveToSd(
