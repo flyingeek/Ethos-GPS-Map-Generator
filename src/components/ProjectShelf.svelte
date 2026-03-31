@@ -7,9 +7,17 @@
 
     let savedProjects = [];
     let selectedSaveIndex = -1;
+    let saveNotice = "";
+    let saveNoticeTimer = null;
 
     onMount(() => {
         loadProjectsFromStorage();
+
+        return () => {
+            if (saveNoticeTimer) {
+                clearTimeout(saveNoticeTimer);
+            }
+        };
     });
 
     function loadProjectsFromStorage() {
@@ -71,6 +79,15 @@
         }
 
         persistProjects();
+
+        saveNotice = `Saved: ${name}`;
+        if (saveNoticeTimer) {
+            clearTimeout(saveNoticeTimer);
+        }
+        saveNoticeTimer = setTimeout(() => {
+            saveNotice = "";
+            saveNoticeTimer = null;
+        }, 1600);
     }
 
     function loadSelectedProject() {
@@ -114,6 +131,9 @@
     <button class="ok" on:click={saveProject} title="Save current project"
         >Save</button
     >
+    <span class={`save-notice ${saveNotice ? "visible" : ""}`}>
+        {saveNotice || "Saved"}
+    </span>
 </div>
 
 <style>
@@ -123,6 +143,8 @@
         gap: 8px;
         flex-wrap: wrap;
         justify-content: flex-end;
+        position: relative;
+        padding-bottom: 1.05rem;
     }
 
     .project-shelf-label {
@@ -173,5 +195,25 @@
     .del-btn {
         min-width: unset;
         padding: 8px 10px;
+    }
+
+    .save-notice {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        text-align: right;
+        color: #a9e65c;
+        font-size: 0.74rem;
+        letter-spacing: 0.03em;
+        font-family: "Space Mono", monospace;
+        line-height: 1.2;
+        opacity: 0;
+        transition: opacity 120ms ease;
+        pointer-events: none;
+        white-space: nowrap;
+    }
+
+    .save-notice.visible {
+        opacity: 1;
     }
 </style>
