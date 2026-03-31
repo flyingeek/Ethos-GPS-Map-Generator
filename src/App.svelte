@@ -38,6 +38,7 @@
     let isMeasureActive = false;
     let measureStart = null;
     let measureTarget = null;
+    let measureCursorPoint = null;
     let measureTargetScreen = null;
     let measureDistanceM = 0;
     let measureBearing = 0;
@@ -287,6 +288,17 @@
                         return;
                     }
 
+                    if (isMeasureActive && measureCursorPoint) {
+                        const hoverLngLat = map.unproject([
+                            measureCursorPoint.x,
+                            measureCursorPoint.y,
+                        ]);
+                        measureTarget = {
+                            lat: hoverLngLat.lat,
+                            lng: hoverLngLat.lng,
+                        };
+                    }
+
                     updateHomeCrosshairScreenPoint();
                     updateF3AZoneOverlay();
                     if (isMeasureActive) {
@@ -299,14 +311,26 @@
                         return;
                     }
 
+                    let cursorX = event.point.x;
+                    let cursorY = event.point.y;
+                    const nativeEvent = event.originalEvent;
+                    if (nativeEvent && mapContainer) {
+                        const rect = mapContainer.getBoundingClientRect();
+                        cursorX = nativeEvent.clientX - rect.left;
+                        cursorY = nativeEvent.clientY - rect.top;
+                    }
+
+                    const hoverLngLat = map.unproject([cursorX, cursorY]);
+
                     measureTarget = {
-                        lat: event.lngLat.lat,
-                        lng: event.lngLat.lng,
+                        lat: hoverLngLat.lat,
+                        lng: hoverLngLat.lng,
                     };
-                    measureTargetScreen = {
-                        x: event.point.x,
-                        y: event.point.y,
+                    measureCursorPoint = {
+                        x: cursorX,
+                        y: cursorY,
                     };
+                    measureTargetScreen = measureCursorPoint;
                     updateMeasureLine();
                 });
 
@@ -316,6 +340,7 @@
                     }
 
                     measureTarget = null;
+                    measureCursorPoint = null;
                     measureTargetScreen = null;
                     updateMeasureLine();
                 });
@@ -419,6 +444,7 @@
             isMeasureActive = true;
             measureStart = homePosition ?? map.getCenter();
             measureTarget = null;
+            measureCursorPoint = null;
             measureTargetScreen = null;
             measureDistanceM = 0;
             measureBearing = 0;
@@ -434,6 +460,7 @@
         isMeasureActive = false;
         measureStart = null;
         measureTarget = null;
+        measureCursorPoint = null;
         measureTargetScreen = null;
         measureDistanceM = 0;
         measureBearing = 0;
@@ -468,7 +495,8 @@
         );
         measureRelativeAngle =
             wrappedRelative > 180 ? wrappedRelative - 360 : wrappedRelative;
-        measureTargetScreen = map.project([target.lng, target.lat]);
+        measureTargetScreen =
+            measureCursorPoint ?? map.project([target.lng, target.lat]);
     }
 
     function updateHomeCrosshairScreenPoint() {
@@ -916,6 +944,26 @@
                                 x2={measureTargetScreen.x}
                                 y2={measureTargetScreen.y}
                             ></line>
+                            <circle
+                                class="measure-cursor-ring"
+                                cx={measureTargetScreen.x}
+                                cy={measureTargetScreen.y}
+                                r="6"
+                            ></circle>
+                            <line
+                                class="measure-cursor-mark"
+                                x1={measureTargetScreen.x - 10}
+                                y1={measureTargetScreen.y}
+                                x2={measureTargetScreen.x + 10}
+                                y2={measureTargetScreen.y}
+                            ></line>
+                            <line
+                                class="measure-cursor-mark"
+                                x1={measureTargetScreen.x}
+                                y1={measureTargetScreen.y - 10}
+                                x2={measureTargetScreen.x}
+                                y2={measureTargetScreen.y + 10}
+                            ></line>
                         {/if}
                         <line
                             class="locked-crosshair"
@@ -945,6 +993,26 @@
                                 y1={mapHeight / 2}
                                 x2={measureTargetScreen.x}
                                 y2={measureTargetScreen.y}
+                            ></line>
+                            <circle
+                                class="measure-cursor-ring"
+                                cx={measureTargetScreen.x}
+                                cy={measureTargetScreen.y}
+                                r="6"
+                            ></circle>
+                            <line
+                                class="measure-cursor-mark"
+                                x1={measureTargetScreen.x - 10}
+                                y1={measureTargetScreen.y}
+                                x2={measureTargetScreen.x + 10}
+                                y2={measureTargetScreen.y}
+                            ></line>
+                            <line
+                                class="measure-cursor-mark"
+                                x1={measureTargetScreen.x}
+                                y1={measureTargetScreen.y - 10}
+                                x2={measureTargetScreen.x}
+                                y2={measureTargetScreen.y + 10}
                             ></line>
                         </svg>
                     {/if}
@@ -1396,9 +1464,22 @@
         fill: none;
         stroke: #89dc33;
         stroke-width: 3;
-        stroke-linecap: round;
+        stroke-linecap: butt;
         stroke-dasharray: 7 6;
         filter: drop-shadow(0 0 4px rgba(137, 220, 51, 0.5));
+    }
+
+    .measure-cursor-ring {
+        fill: rgba(7, 16, 8, 0.2);
+        stroke: #89dc33;
+        stroke-width: 1.5;
+        filter: drop-shadow(0 0 4px rgba(137, 220, 51, 0.45));
+    }
+
+    .measure-cursor-mark {
+        stroke: #89dc33;
+        stroke-width: 1.5;
+        stroke-linecap: butt;
     }
 
     .crosshair {
@@ -1603,6 +1684,6 @@
                 .maplibregl-canvas-container.maplibregl-interactive:active
         ),
     :global(.map-box.measure-mode .maplibregl-canvas) {
-        cursor: crosshair !important;
+        cursor: none !important;
     }
 </style>
