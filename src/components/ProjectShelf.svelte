@@ -62,6 +62,12 @@
                 lng: projectState.center.lng,
             },
             zoom: projectState.zoom,
+            homePosition: projectState.homePosition
+                ? {
+                      lat: projectState.homePosition.lat,
+                      lng: projectState.homePosition.lng,
+                  }
+                : null,
         };
 
         const existingIndex = savedProjects.findIndex((p) => p.name === name);

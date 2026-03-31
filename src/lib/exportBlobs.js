@@ -58,6 +58,7 @@ export function createLuaBlob({
     mapTitle,
     mapWidth,
     mapHeight,
+    homePosition,
 }) {
     const corners = getViewportCorners(map);
     const { topLeft, topRight, bottomLeft, bottomRight } = resolveExportCorners(
@@ -71,6 +72,11 @@ export function createLuaBlob({
   resolution = { width = ${mapWidth}, height = ${mapHeight} },
     zoom = ${Number(zoom.toFixed(1))},
     rotation = ${Number(rotation.toFixed(1))},
+    homePosition = ${
+            homePosition
+                    ? `{ lat = ${Number(homePosition.lat.toFixed(8))}, lon = ${Number(homePosition.lng.toFixed(8))} }`
+                    : "nil"
+    },
   topLeft = { lat = ${topLeft.lat}, lon = ${topLeft.lon} },
   topRight = { lat = ${topRight.lat}, lon = ${topRight.lon} },
   bottomLeft = { lat = ${bottomLeft.lat}, lon = ${bottomLeft.lon} },

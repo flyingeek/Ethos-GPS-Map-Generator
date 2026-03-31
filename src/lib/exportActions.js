@@ -22,6 +22,7 @@ export async function createExportArtifacts({
     rotation,
     zoom,
     baseName,
+    homePosition,
 }) {
     const bmpBlob = await createBmpBlob(map, mapViewport, mapWidth, mapHeight, 16);
     const jsonBlob = createJsonBlob({ map, bounds, rotation });
@@ -33,6 +34,7 @@ export async function createExportArtifacts({
         mapTitle: baseName,
         mapWidth,
         mapHeight,
+        homePosition,
     });
     const metaBlob = createMetadataBlob({
         map,
