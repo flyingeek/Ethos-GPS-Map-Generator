@@ -35,6 +35,15 @@
 {/if}
 
 <style>
+    .zone-overlay {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        shape-rendering: geometricPrecision;
+    }
+
     :global(.f3a-triangle) {
         fill: none;
         stroke: #f0d83b;

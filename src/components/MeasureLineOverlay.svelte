@@ -43,6 +43,15 @@
 {/if}
 
 <style>
+    .zone-overlay {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        shape-rendering: geometricPrecision;
+    }
+
     :global(.measure-guide) {
         fill: none;
         stroke: #89dc33;

@@ -28,6 +28,15 @@
 {/if}
 
 <style>
+    .zone-overlay {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        shape-rendering: geometricPrecision;
+    }
+
     :global(.locked-crosshair) {
         stroke: #95ef37;
         stroke-width: 2;
