@@ -1,4 +1,4 @@
-import { toDms, normalizeBearing, destinationPoint } from "./geoUtils.js";
+import { toDms, normalizeBearing, destinationPoint, calculateF3AZone } from "./geoUtils.js";
 
 export function getViewportCorners(map) {
     if (!map) return null;
@@ -81,25 +81,14 @@ export function createLuaBlob({
 
     let f3aZoneLua = "nil";
     if (homePosition) {
+        const { apex: apexGeo, left: leftGeo, right: rightGeo } = calculateF3AZone(
+            homePosition,
+            f3aRotation,
+            f3aBaseDistance,
+        );
         const axisBearing = normalizeBearing(Number(f3aRotation) || 0);
-        const halfApexAngleDeg = 60;
-        const baseDistanceM = Math.max(1, Number(f3aBaseDistance) || 150);
-        const sideLength =
-            baseDistanceM / Math.cos((Math.PI * halfApexAngleDeg) / 180);
 
-        const apexGeo = { lat: homePosition.lat, lng: homePosition.lng };
-        const leftGeo = destinationPoint(
-            apexGeo,
-            axisBearing - halfApexAngleDeg,
-            sideLength,
-        );
-        const rightGeo = destinationPoint(
-            apexGeo,
-            axisBearing + halfApexAngleDeg,
-            sideLength,
-        );
-
-        f3aZoneLua = `{ visible = ${Boolean(f3aZoneVisible)}, rotation = ${Number(axisBearing.toFixed(1))}, baseDistance = ${Number(baseDistanceM.toFixed(1))}, apex = ${toLuaGeoPoint(apexGeo)}, left = ${toLuaGeoPoint(leftGeo)}, right = ${toLuaGeoPoint(rightGeo)} }`;
+        f3aZoneLua = `{ visible = ${Boolean(f3aZoneVisible)}, rotation = ${Number(axisBearing.toFixed(1))}, baseDistance = ${Number(Number(f3aBaseDistance || 150).toFixed(1))}, apex = ${toLuaGeoPoint(apexGeo)}, left = ${toLuaGeoPoint(leftGeo)}, right = ${toLuaGeoPoint(rightGeo)} }`;
     }
 
     const lua = `return {

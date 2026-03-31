@@ -54,6 +54,28 @@ export function destinationPoint(origin, bearingDeg, distanceM) {
     };
 }
 
+export function calculateF3AZone(homePosition, rotation, baseDistance) {
+    const axisBearing = normalizeBearing(Number(rotation) || 0);
+    const halfApexAngleDeg = 60;
+    const baseDistanceM = Math.max(1, Number(baseDistance) || 150);
+    const sideLength =
+        baseDistanceM / Math.cos((Math.PI * halfApexAngleDeg) / 180);
+
+    return {
+        apex: homePosition,
+        left: destinationPoint(
+            homePosition,
+            axisBearing - halfApexAngleDeg,
+            sideLength,
+        ),
+        right: destinationPoint(
+            homePosition,
+            axisBearing + halfApexAngleDeg,
+            sideLength,
+        ),
+    };
+}
+
 export function toDms(decimal, isLat) {
     const absolute = Math.abs(decimal);
     const degrees = Math.floor(absolute);

@@ -6,6 +6,7 @@
         distanceMeters,
         normalizeBearing,
         destinationPoint,
+        calculateF3AZone,
     } from "./lib/geoUtils.js";
     import {
         createExportArtifacts,
@@ -519,25 +520,15 @@
             return;
         }
 
-        const axisBearing = normalizeBearing(f3aRotation);
-        const halfApexAngleDeg = 60;
-        const baseDistanceM = Math.max(1, Number(f3aBaseDistance) || 150);
-        const sideLength =
-            baseDistanceM / Math.cos((Math.PI * halfApexAngleDeg) / 180);
-        const leftPoint = destinationPoint(
+        const { apex, left, right } = calculateF3AZone(
             homePosition,
-            axisBearing - halfApexAngleDeg,
-            sideLength,
-        );
-        const rightPoint = destinationPoint(
-            homePosition,
-            axisBearing + halfApexAngleDeg,
-            sideLength,
+            f3aRotation,
+            f3aBaseDistance,
         );
 
-        const apexScreen = map.project([homePosition.lng, homePosition.lat]);
-        const leftScreen = map.project([leftPoint.lng, leftPoint.lat]);
-        const rightScreen = map.project([rightPoint.lng, rightPoint.lat]);
+        const apexScreen = map.project([apex.lng, apex.lat]);
+        const leftScreen = map.project([left.lng, left.lat]);
+        const rightScreen = map.project([right.lng, right.lat]);
 
         f3aZoneGeometry = {
             apex: apexScreen,
