@@ -1,6 +1,5 @@
 <script>
     import { onMount } from "svelte";
-    import JSZip from "jszip";
     import maplibregl from "maplibre-gl";
     import { buildRasterStyle, MAP_TYPES } from "./mapStyles.js";
     import { normalizeAngle, distanceMeters } from "./lib/geoUtils.js";
@@ -295,6 +294,7 @@
                 baseName,
             });
 
+        const { default: JSZip } = await import("jszip");
         const zip = new JSZip();
         zip.file(`${baseName}.bmp`, bmpBlob);
         zip.file(`${baseName}.json`, jsonBlob);
