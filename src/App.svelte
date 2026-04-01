@@ -260,6 +260,16 @@
                     refreshBounds();
                     refreshProjectedOverlays();
                     if (isMeasureActive) {
+                        if (measureCursorPoint) {
+                            const hoverLngLat = map.unproject([
+                                measureCursorPoint.x,
+                                measureCursorPoint.y,
+                            ]);
+                            measureTarget = {
+                                lat: hoverLngLat.lat,
+                                lng: hoverLngLat.lng,
+                            };
+                        }
                         updateMeasureLine();
                     }
                 });
@@ -275,29 +285,6 @@
 
                 map.on("rotate", () => {
                     rotation = Number(map.getBearing().toFixed(1));
-                    refreshProjectedOverlays();
-                    if (isMeasureActive) {
-                        updateMeasureLine();
-                    }
-                });
-
-                // Keep projected overlays tightly synced during animated zoom/pan frames.
-                map.on("render", () => {
-                    if (!homePosition && !isMeasureActive) {
-                        return;
-                    }
-
-                    if (isMeasureActive && measureCursorPoint) {
-                        const hoverLngLat = map.unproject([
-                            measureCursorPoint.x,
-                            measureCursorPoint.y,
-                        ]);
-                        measureTarget = {
-                            lat: hoverLngLat.lat,
-                            lng: hoverLngLat.lng,
-                        };
-                    }
-
                     refreshProjectedOverlays();
                     if (isMeasureActive) {
                         updateMeasureLine();
