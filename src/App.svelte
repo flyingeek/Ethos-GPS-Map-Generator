@@ -51,7 +51,7 @@
     let isF3AZoneVisible = true;
     let f3aRotation = 42.5;
     let f3aBaseDistance = 150;
-    let f3aDefaultColor = "#f0d83b";
+    let f3aDefaultColor = "#ffffff"; //"#f0d83b";//yellowish
     let f3aColor = f3aDefaultColor;
     let f3aZoneGeometry = null;
 
