@@ -812,7 +812,11 @@
                 <div class="map-surface" bind:this={mapContainer}></div>
                 <F3AZoneOverlay geometry={f3aZoneGeometry} />
                 {#if homeScreenPoint}
-                    <HomeCrosshairOverlay screenPoint={homeScreenPoint} />
+                    <HomeCrosshairOverlay
+                        screenPoint={homeScreenPoint}
+                        {mapWidth}
+                        {mapHeight}
+                    />
                     <MeasureLineOverlay
                         isActive={isMeasureActive}
                         startPoint={homeScreenPoint}
