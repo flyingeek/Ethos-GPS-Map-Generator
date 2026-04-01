@@ -947,8 +947,9 @@
                         />
                     </label>
                     <label class="field zone-field">
-                        <span class="color-label">
-                            Zone Color
+                        <span>Zone Color</span>
+                        <div class="color-row">
+                            <input type="color" bind:value={f3aColor} />
                             {#if f3aColor !== f3aDefaultColor}
                                 <button
                                     class="reset-color"
@@ -957,8 +958,7 @@
                                     >reset</button
                                 >
                             {/if}
-                        </span>
-                        <input type="color" bind:value={f3aColor} />
+                        </div>
                     </label>
                 </section>
             {/if}
@@ -1320,10 +1320,10 @@
         min-width: unset;
     }
 
-    .color-label {
+    .color-row {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
     }
 
     .reset-color {
