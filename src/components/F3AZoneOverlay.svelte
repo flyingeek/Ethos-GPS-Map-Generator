@@ -2,50 +2,46 @@
     import OverlaySvg from "./OverlaySvg.svelte";
 
     export let geometry = null;
+    export let color = "#f0d83b";
+
+    $: rgb = color;
+    $: shadow = `drop-shadow(0 0 4px ${color}73)`;
 </script>
 
 {#if geometry}
     <OverlaySvg>
         <line
-            class="f3a-triangle"
             x1={geometry.apex.x}
             y1={geometry.apex.y}
             x2={geometry.left.x}
             y2={geometry.left.y}
-        ></line>
+            stroke={rgb}
+            stroke-width="2.5"
+            stroke-linecap="butt"
+            filter={shadow}
+            shape-rendering="geometricPrecision"
+        />
         <line
-            class="f3a-triangle"
             x1={geometry.apex.x}
             y1={geometry.apex.y}
             x2={geometry.right.x}
             y2={geometry.right.y}
-        ></line>
+            stroke={rgb}
+            stroke-width="2.5"
+            stroke-linecap="butt"
+            filter={shadow}
+            shape-rendering="geometricPrecision"
+        />
         <line
-            class="f3a-triangle-base"
             x1={geometry.left.x}
             y1={geometry.left.y}
             x2={geometry.right.x}
             y2={geometry.right.y}
-        ></line>
+            stroke={rgb}
+            stroke-width="1.5"
+            stroke-linecap="butt"
+            filter={shadow}
+            shape-rendering="geometricPrecision"
+        />
     </OverlaySvg>
 {/if}
-
-<style>
-    :global(.f3a-triangle) {
-        fill: none;
-        stroke: #f0d83b;
-        stroke-width: 2.5;
-        stroke-linecap: butt;
-        filter: drop-shadow(0 0 4px rgba(240, 216, 59, 0.45));
-        shape-rendering: geometricPrecision;
-    }
-
-    :global(.f3a-triangle-base) {
-        fill: none;
-        stroke: #f0d83b;
-        stroke-width: 1.5;
-        stroke-linecap: butt;
-        filter: drop-shadow(0 0 4px rgba(240, 216, 59, 0.45));
-        shape-rendering: geometricPrecision;
-    }
-</style>

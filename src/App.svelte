@@ -51,6 +51,8 @@
     let isF3AZoneVisible = true;
     let f3aRotation = 42.5;
     let f3aBaseDistance = 150;
+    let f3aDefaultColor = "#f0d83b";
+    let f3aColor = f3aDefaultColor;
     let f3aZoneGeometry = null;
 
     $: hudReference = homePosition ?? center;
@@ -645,6 +647,11 @@
                 ? p.f3aRotation
                 : f3aRotation;
         f3aBaseDistance = Math.max(1, Number(p.f3aBaseDistance) || 150);
+        f3aColor =
+            typeof p.f3aColor === "string" &&
+            /^#[0-9a-fA-F]{6}$/.test(p.f3aColor)
+                ? p.f3aColor
+                : f3aDefaultColor;
         isF3AZoneVisible = Boolean(p.f3aZoneVisible) && Boolean(homePosition);
 
         if (map) {
@@ -698,6 +705,7 @@
                 f3aZoneVisible: isF3AZoneVisible,
                 f3aRotation,
                 f3aBaseDistance,
+                f3aColor,
             }}
             on:loadproject={handleLoadProject}
         />
@@ -810,7 +818,7 @@
                 style={`width:${mapWidth}px;height:${mapHeight}px;`}
             >
                 <div class="map-surface" bind:this={mapContainer}></div>
-                <F3AZoneOverlay geometry={f3aZoneGeometry} />
+                <F3AZoneOverlay geometry={f3aZoneGeometry} color={f3aColor} />
                 {#if homeScreenPoint}
                     <HomeCrosshairOverlay
                         screenPoint={homeScreenPoint}
@@ -937,6 +945,20 @@
                             step="1"
                             bind:value={f3aBaseDistance}
                         />
+                    </label>
+                    <label class="field zone-field">
+                        <span class="color-label">
+                            Zone Color
+                            {#if f3aColor !== f3aDefaultColor}
+                                <button
+                                    class="reset-color"
+                                    on:click={() =>
+                                        (f3aColor = f3aDefaultColor)}
+                                    >reset</button
+                                >
+                            {/if}
+                        </span>
+                        <input type="color" bind:value={f3aColor} />
                     </label>
                 </section>
             {/if}
@@ -1296,6 +1318,26 @@
 
     .zone-rotation-field {
         min-width: unset;
+    }
+
+    .color-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .reset-color {
+        all: unset;
+        color: #6a9cbc;
+        font-family: "Space Mono", monospace;
+        font-size: 0.65rem;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        cursor: pointer;
+    }
+
+    .reset-color:hover {
+        color: #a8cfe0;
     }
 
     .home-actions {
