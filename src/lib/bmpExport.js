@@ -178,7 +178,9 @@ export async function createBmpBlob(map, mapViewport, mapWidth, mapHeight, depth
             );
         }
 
-        drawNorthArrow(captureCtx, mapWidth, mapHeight, map.getBearing());
+        if (map.getBearing() !== 0) {
+            drawNorthArrow(captureCtx, mapWidth, mapHeight, map.getBearing());
+        }
         if (f3aOverlay) {
             drawF3AZone(captureCtx, f3aOverlay.geometry, f3aOverlay.color);
         }
