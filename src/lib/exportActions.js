@@ -26,8 +26,9 @@ export async function createExportArtifacts({
     f3aZoneVisible,
     f3aRotation,
     f3aBaseDistance,
+    f3aOverlay,
 }) {
-    const bmpBlob = await createBmpBlob(map, mapViewport, mapWidth, mapHeight, 16);
+    const bmpBlob = await createBmpBlob(map, mapViewport, mapWidth, mapHeight, 16, f3aOverlay ?? null);
     const jsonBlob = createJsonBlob({ map, bounds, rotation });
     const luaBlob = createLuaBlob({
         map,

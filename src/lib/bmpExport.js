@@ -100,7 +100,39 @@ export function drawNorthArrow(ctx, width, height, bearing) {
     ctx.restore();
 }
 
-export async function createBmpBlob(map, mapViewport, mapWidth, mapHeight, depth = 16) {
+export function drawF3AZone(ctx, geometry, color) {
+    if (!geometry) return;
+    const { apex, left, right, leftBase, rightBase } = geometry;
+    if (!apex || !left || !right || !leftBase || !rightBase) return;
+
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineCap = "butt";
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 4;
+
+    // Arms (apex → tip)
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(apex.x, apex.y);
+    ctx.lineTo(left.x, left.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(apex.x, apex.y);
+    ctx.lineTo(right.x, right.y);
+    ctx.stroke();
+
+    // Base
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(leftBase.x, leftBase.y);
+    ctx.lineTo(rightBase.x, rightBase.y);
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+export async function createBmpBlob(map, mapViewport, mapWidth, mapHeight, depth = 16, f3aOverlay = null) {
     if (!mapViewport) {
         throw new Error("Map viewport is not ready.");
     }
@@ -147,6 +179,9 @@ export async function createBmpBlob(map, mapViewport, mapWidth, mapHeight, depth
         }
 
         drawNorthArrow(captureCtx, mapWidth, mapHeight, map.getBearing());
+        if (f3aOverlay) {
+            drawF3AZone(captureCtx, f3aOverlay.geometry, f3aOverlay.color);
+        }
     } finally {
         hidden.forEach((el) => {
             el.style.visibility = "visible";

@@ -526,6 +526,7 @@
                 f3aZoneVisible: isF3AZoneVisible,
                 f3aRotation,
                 f3aBaseDistance,
+                f3aOverlay: isF3AZoneVisible && f3aZoneGeometry ? { geometry: f3aZoneGeometry, color: f3aColor } : null,
             });
 
         const { default: JSZip } = await import("jszip");
@@ -600,6 +601,7 @@
                 f3aZoneVisible: isF3AZoneVisible,
                 f3aRotation,
                 f3aBaseDistance,
+                f3aOverlay: isF3AZoneVisible && f3aZoneGeometry ? { geometry: f3aZoneGeometry, color: f3aColor } : null,
             });
 
         const bmpOk = await saveToSd(
