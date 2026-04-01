@@ -516,7 +516,7 @@
 
     async function handleDownloadZip() {
         const baseName = cleanBaseName();
-        const { bmpBlob, jsonBlob, luaBlob, metaBlob } =
+        const { bmpBlob /*, jsonBlob*/, luaBlob /*, metaBlob*/ } =
             await createExportArtifacts({
                 map,
                 mapViewport,
@@ -539,9 +539,9 @@
         const { default: JSZip } = await import("jszip");
         const zip = new JSZip();
         zip.file(`${baseName}.bmp`, bmpBlob);
-        zip.file(`${baseName}.json`, jsonBlob);
+        //zip.file(`${baseName}.json`, jsonBlob);
         zip.file(`${baseName}.lua`, luaBlob);
-        zip.file(`${baseName}_metadata.txt`, metaBlob);
+        //zip.file(`${baseName}_metadata.txt`, metaBlob);
 
         const outBlob = await zip.generateAsync({ type: "blob" });
         downloadFile(outBlob, `${baseName}.zip`);
@@ -597,7 +597,7 @@
         const baseName = cleanBaseName();
 
         syncMessage = "Syncing...";
-        const { bmpBlob, jsonBlob, luaBlob, metaBlob } =
+        const { bmpBlob /*, jsonBlob, */, luaBlob /*, metaBlob */ } =
             await createExportArtifacts({
                 map,
                 mapViewport,
@@ -622,24 +622,23 @@
             SD_BITMAPS_PATH,
             `${baseName}.bmp`,
         );
-        const jsonOk = await saveToSd(
-            jsonBlob,
-            SD_METADATA_PATH,
-            `${baseName}.json`,
-        );
+        // const jsonOk = await saveToSd(
+        //     jsonBlob,
+        //     SD_METADATA_PATH,
+        //     `${baseName}.json`,
+        // );
         const luaOk = await saveToSd(
             luaBlob,
             SD_METADATA_PATH,
             `${baseName}.lua`,
         );
-        const metaOk = await saveToSd(
-            metaBlob,
-            SD_METADATA_PATH,
-            `${baseName}_metadata.txt`,
-        );
+        // const metaOk = await saveToSd(
+        //     metaBlob,
+        //     SD_METADATA_PATH,
+        //     `${baseName}_metadata.txt`,
+        // );
 
-        syncMessage =
-            bmpOk && jsonOk && luaOk && metaOk ? "Saved!" : "Save Failed";
+        syncMessage = bmpOk && luaOk ? "Saved!" : "Save Failed";
 
         setTimeout(() => {
             syncMessage = "Save to folder";
