@@ -121,7 +121,7 @@
     const MAPLIBRE_VERSION = "5.1.1";
     const MAPLIBRE_CSS_URL = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`;
     const MAPLIBRE_JS_URL = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js`;
-    const SD_BITMAPS_PATH = "bitmaps/GPS";
+    const SD_BITMAPS_PATH = "bitmaps/gps";
     const SD_METADATA_PATH = "documents/user";
 
     let maplibreglApi = null;
