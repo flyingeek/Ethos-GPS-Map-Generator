@@ -35,7 +35,7 @@
 
     let sdHandle = null;
     let isSdLinked = false;
-    let syncMessage = "Sync To SD";
+    let syncMessage = "Save to folder";
     let supportsSdSync = false;
 
     let bounds = { north: 0, south: 0, west: 0, east: 0 };
@@ -127,8 +127,8 @@
     const MAPLIBRE_VERSION = "5.1.1";
     const MAPLIBRE_CSS_URL = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`;
     const MAPLIBRE_JS_URL = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js`;
-    const SD_BITMAPS_PATH = "bitmaps/gps";
-    const SD_METADATA_PATH = "documents/user";
+    const SD_BITMAPS_PATH = "";
+    const SD_METADATA_PATH = "";
 
     let maplibreglApi = null;
 
@@ -636,10 +636,10 @@
         );
 
         syncMessage =
-            bmpOk && jsonOk && luaOk && metaOk ? "Synced!" : "Sync Failed";
+            bmpOk && jsonOk && luaOk && metaOk ? "Saved!" : "Save Failed";
 
         setTimeout(() => {
-            syncMessage = "Sync To SD";
+            syncMessage = "Save to folder";
         }, 1800);
     }
     function handleLoadProject(event) {
