@@ -727,7 +727,7 @@
         <div class="row">
             <label class="field">
                 <span>Project Title</span>
-                <input type="text" bind:value={mapTitle} maxlength="24" />
+                <input type="text" bind:value={mapTitle} maxlength="11" />
             </label>
 
             <label class="field">
