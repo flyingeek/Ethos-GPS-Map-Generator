@@ -1,7 +1,11 @@
 <script>
     import { onMount } from "svelte";
     import { buildRasterStyle, MAP_TYPES } from "./mapStyles.js";
-    import { normalizeAngle, calculateMeasureState } from "./lib/geoUtils.js";
+    import {
+        normalizeAngle,
+        calculateMeasureState,
+        toDms,
+    } from "./lib/geoUtils.js";
     import {
         projectLngLat,
         projectF3AZoneGeometry,
@@ -803,18 +807,42 @@
             </div>
         </div>
 
-        <div class="bounds-grid">
-            <div>
-                <h3>Latitude Bounds</h3>
-                <p>
-                    N: {bounds.north.toFixed(8)} | S: {bounds.south.toFixed(8)}
-                </p>
+        {#if rotation !== 0}
+            <p class="bounds-info">
+                ⓘ Ethos GPS Map Widget only supports maps oriented North Up
+                (rotation 0°)
+            </p>
+        {:else}
+            <div class="bounds-grid">
+                <h3 class="bounds-title">Ethos GPS Map Widget Settings</h3>
+                <div class="bounds-latlon">
+                    <div class="bounds-row">
+                        <span class="bounds-label">Latitude</span>
+                        <div class="bounds-values">
+                            <span class="bounds-val"
+                                >{toDms(bounds.north, true)}</span
+                            >
+                            <span class="bounds-sep">-</span>
+                            <span class="bounds-val"
+                                >{toDms(bounds.south, true)}</span
+                            >
+                        </div>
+                    </div>
+                    <div class="bounds-row">
+                        <span class="bounds-label">Longitude</span>
+                        <div class="bounds-values">
+                            <span class="bounds-val"
+                                >{toDms(bounds.east, false)}</span
+                            >
+                            <span class="bounds-sep">-</span>
+                            <span class="bounds-val"
+                                >{toDms(bounds.west, false)}</span
+                            >
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div>
-                <h3>Longitude Bounds</h3>
-                <p>W: {bounds.west.toFixed(8)} | E: {bounds.east.toFixed(8)}</p>
-            </div>
-        </div>
+        {/if}
     </section>
 
     <section class="workspace">
@@ -1146,27 +1174,74 @@
 
     .bounds-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(220px, 1fr));
-        gap: 8px;
+        gap: 0;
         background: rgba(4, 9, 12, 0.6);
         border: 1px solid #304750;
         border-radius: 8px;
-        padding: 10px;
+        overflow: hidden;
         font-family: "Space Mono", monospace;
     }
 
-    .bounds-grid h3 {
-        margin: 0;
-        font-size: 0.74rem;
-        color: #96adbc;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
+    .bounds-latlon {
+        max-width: 784px;
     }
 
-    .bounds-grid p {
-        margin: 6px 0 0;
-        color: #88de31;
-        font-size: 0.82rem;
+    .bounds-title {
+        margin: 0;
+        padding: 7px 12px;
+        font-size: 0.8rem;
+        color: #96adbc;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        border-bottom: 1px solid #304750;
+    }
+
+    .bounds-info {
+        margin: 0;
+        padding: 8px 12px;
+        color: #7ab8cc;
+        font-family: "Space Mono", monospace;
+        font-size: 0.75rem;
+    }
+
+    .bounds-row {
+        display: flex;
+        align-items: center;
+        padding: 6px 12px;
+        gap: 8px;
+        border-top: 1px solid #1e3038;
+    }
+
+    .bounds-label {
+        color: #d0dde4;
+        font-size: 0.85rem;
+        min-width: 80px;
+        flex-shrink: 0;
+    }
+
+    .bounds-values {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 6px;
+        margin-left: auto;
+    }
+
+    .bounds-val {
+        background: #1a2830;
+        border: 1px solid #2f4b51;
+        border-radius: 4px;
+        padding: 3px 8px;
+        color: #e8f2ea;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        text-align: right;
+        min-width: 18ch;
+    }
+
+    .bounds-sep {
+        color: #6a8a96;
+        font-size: 0.8rem;
     }
 
     .workspace {
