@@ -1,13 +1,7 @@
 <script>
-    export let mapWidth = 800;
-    export let mapHeight = 480;
 </script>
 
-<svg
-    class="zone-overlay hud-overlay"
-    viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-    preserveAspectRatio="none"
->
+<svg class="zone-overlay hud-overlay">
     <slot />
 </svg>
 

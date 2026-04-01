@@ -4,12 +4,10 @@
     export let isActive = false;
     export let startPoint = null;
     export let targetPoint = null;
-    export let mapWidth = 800;
-    export let mapHeight = 480;
 </script>
 
 {#if isActive && startPoint && targetPoint}
-    <OverlaySvg {mapWidth} {mapHeight}>
+    <OverlaySvg>
         <line
             class="measure-guide"
             x1={startPoint.x}

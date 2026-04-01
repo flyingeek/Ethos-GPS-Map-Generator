@@ -2,12 +2,10 @@
     import OverlaySvg from "./OverlaySvg.svelte";
 
     export let screenPoint = null;
-    export let mapWidth = 800;
-    export let mapHeight = 480;
 </script>
 
 {#if screenPoint}
-    <OverlaySvg {mapWidth} {mapHeight}>
+    <OverlaySvg>
         <line
             class="locked-crosshair"
             x1={screenPoint.x - 20}

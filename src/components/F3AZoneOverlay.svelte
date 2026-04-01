@@ -2,12 +2,10 @@
     import OverlaySvg from "./OverlaySvg.svelte";
 
     export let geometry = null;
-    export let mapWidth = 800;
-    export let mapHeight = 480;
 </script>
 
 {#if geometry}
-    <OverlaySvg {mapWidth} {mapHeight}>
+    <OverlaySvg>
         <line
             class="f3a-triangle"
             x1={geometry.apex.x}

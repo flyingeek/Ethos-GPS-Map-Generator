@@ -231,6 +231,7 @@
                     bearing: rotation,
                     preserveDrawingBuffer: true,
                     attributionControl: false,
+                    maxZoom: 21.9,
                 });
 
                 map.addControl(
@@ -822,23 +823,13 @@
                 style={`width:${mapWidth}px;height:${mapHeight}px;`}
             >
                 <div class="map-surface" bind:this={mapContainer}></div>
-                <F3AZoneOverlay
-                    geometry={f3aZoneGeometry}
-                    {mapWidth}
-                    {mapHeight}
-                />
+                <F3AZoneOverlay geometry={f3aZoneGeometry} />
                 {#if homeScreenPoint}
-                    <HomeCrosshairOverlay
-                        screenPoint={homeScreenPoint}
-                        {mapWidth}
-                        {mapHeight}
-                    />
+                    <HomeCrosshairOverlay screenPoint={homeScreenPoint} />
                     <MeasureLineOverlay
                         isActive={isMeasureActive}
                         startPoint={homeScreenPoint}
                         targetPoint={measureTargetScreen}
-                        {mapWidth}
-                        {mapHeight}
                     />
                 {:else}
                     <MeasureLineOverlay
@@ -848,8 +839,6 @@
                             y: mapHeight / 2,
                         }}
                         targetPoint={measureTargetScreen}
-                        {mapWidth}
-                        {mapHeight}
                     />
                     <div class="crosshair hud-overlay"></div>
                 {/if}
@@ -1173,8 +1162,9 @@
         position: relative;
         border-radius: 12px;
         overflow: hidden;
-        border: 4px solid rgba(72, 119, 43, 0.75);
-        box-shadow: 0 0 24px rgba(137, 220, 51, 0.22);
+        box-shadow:
+            0 0 0 4px rgba(72, 119, 43, 0.75),
+            0 0 24px rgba(137, 220, 51, 0.22);
         background: #000;
         flex-shrink: 0;
     }
