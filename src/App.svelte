@@ -553,7 +553,10 @@
             sdHandle = await window.showDirectoryPicker();
             isSdLinked = true;
         } catch (error) {
-            isSdLinked = false;
+            if (error?.name !== "AbortError") {
+                sdHandle = null;
+                isSdLinked = false;
+            }
         }
     }
 
@@ -789,17 +792,21 @@
 
             <div class="action-controls">
                 {#if supportsSdSync}
-                    <button
-                        type="button"
-                        class="sd-status-link"
-                        on:click={linkSdCard}
-                        title="Pick or change SD folder (optional)"
-                    >
-                        {isSdLinked ? "Linked (relink)" : "Not linked"}
-                    </button>
-                    <button class="ok" on:click={handleSync}
-                        >{syncMessage}</button
-                    >
+                    <div class="sync-group">
+                        <button class="ok" on:click={handleSync}
+                            >{syncMessage}</button
+                        >
+                        {#if isSdLinked && sdHandle}
+                            <button
+                                type="button"
+                                class="sd-status-link"
+                                on:click={linkSdCard}
+                                title="Change the folder to save to"
+                            >
+                                📁 {sdHandle.name} (change)
+                            </button>
+                        {/if}
+                    </div>
                 {/if}
                 <button class="ghost" on:click={handleDownloadZip}
                     >Download ZIP</button
@@ -1155,17 +1162,31 @@
         flex-wrap: wrap;
     }
 
+    .sync-group {
+        position: relative;
+    }
+
+    .sync-group > .ok {
+        width: 120px;
+    }
+
     .sd-status-link {
-        padding: 0;
+        position: absolute;
+        top: calc(100% + 3px);
+        left: 0;
+        padding: 0 0 0 10px;
         border: 0;
+        min-height: 0;
         background: transparent;
         color: #a2b4bc;
         font-family: "Space Mono", monospace;
         font-size: 0.72rem;
+        font-weight: 400;
         letter-spacing: 0.02em;
         text-decoration: underline;
         text-underline-offset: 2px;
         cursor: pointer;
+        white-space: nowrap;
     }
 
     .sd-status-link:hover {
