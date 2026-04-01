@@ -891,7 +891,7 @@
         </div>
 
         <aside class="panel guide">
-            <section class="home-panel">
+            <section class="home-panel" class:with-f3a={homePosition}>
                 <h2>Home Position</h2>
                 <p>
                     Lock the crosshair to the current center and keep it pinned
@@ -960,19 +960,6 @@
                     </label>
                 </section>
             {/if}
-
-            <section>
-                <h2>Export Notes</h2>
-                <p>
-                    Sync writes the BMP to {SD_BITMAPS_PATH} and JSON plus metadata
-                    to {SD_METADATA_PATH}.
-                </p>
-                <p>
-                    ZIP export includes the same three files and now stores
-                    rotation in JSON and metadata.
-                </p>
-                <p>Right-click the map to exit measure mode quickly.</p>
-            </section>
         </aside>
     </section>
 </div>
@@ -1315,16 +1302,15 @@
         display: grid;
         gap: 8px;
         padding-bottom: 8px;
+    }
+
+    .home-panel.with-f3a {
         border-bottom: 1px solid #2e434a;
     }
 
     .f3a-panel {
         display: grid;
         gap: 8px;
-        padding: 10px;
-        border: 1px solid #3a4a1b;
-        border-radius: 10px;
-        background: rgba(37, 37, 10, 0.18);
     }
 
     .zone-rotation-field {
