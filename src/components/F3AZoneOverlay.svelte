@@ -2,7 +2,7 @@
     import OverlaySvg from "./OverlaySvg.svelte";
 
     export let geometry = null;
-    export let color = "#f0d83b";
+    export let color;
 
     $: rgb = color;
     $: shadow = `drop-shadow(0 0 4px ${color}73)`;

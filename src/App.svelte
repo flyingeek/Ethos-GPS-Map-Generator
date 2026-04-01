@@ -51,7 +51,7 @@
     let isF3AZoneVisible = true;
     let f3aRotation = 42.5;
     let f3aBaseDistance = 150;
-    let f3aDefaultColor = "#ffffff"; //"#f0d83b";//yellowish
+    const f3aDefaultColor = "#ffffff";
     let f3aColor = f3aDefaultColor;
     let f3aZoneGeometry = null;
 
@@ -526,7 +526,10 @@
                 f3aZoneVisible: isF3AZoneVisible,
                 f3aRotation,
                 f3aBaseDistance,
-                f3aOverlay: isF3AZoneVisible && f3aZoneGeometry ? { geometry: f3aZoneGeometry, color: f3aColor } : null,
+                f3aOverlay:
+                    isF3AZoneVisible && f3aZoneGeometry
+                        ? { geometry: f3aZoneGeometry, color: f3aColor }
+                        : null,
             });
 
         const { default: JSZip } = await import("jszip");
@@ -601,7 +604,10 @@
                 f3aZoneVisible: isF3AZoneVisible,
                 f3aRotation,
                 f3aBaseDistance,
-                f3aOverlay: isF3AZoneVisible && f3aZoneGeometry ? { geometry: f3aZoneGeometry, color: f3aColor } : null,
+                f3aOverlay:
+                    isF3AZoneVisible && f3aZoneGeometry
+                        ? { geometry: f3aZoneGeometry, color: f3aColor }
+                        : null,
             });
 
         const bmpOk = await saveToSd(
@@ -939,29 +945,31 @@
                             horizontalWrap={false}
                         />
                     </label>
-                    <label class="field zone-field">
-                        <span>Base Distance (m)</span>
-                        <input
-                            type="number"
-                            min="1"
-                            step="1"
-                            bind:value={f3aBaseDistance}
-                        />
-                    </label>
-                    <label class="field zone-field">
-                        <span>Zone Color</span>
-                        <div class="color-row">
-                            <input type="color" bind:value={f3aColor} />
-                            {#if f3aColor !== f3aDefaultColor}
-                                <button
-                                    class="reset-color"
-                                    on:click={() =>
-                                        (f3aColor = f3aDefaultColor)}
-                                    >reset</button
-                                >
-                            {/if}
-                        </div>
-                    </label>
+                    <div class="zone-dist-color-row">
+                        <label class="field zone-field">
+                            <span>Base Distance (m)</span>
+                            <input
+                                type="number"
+                                min="1"
+                                step="1"
+                                bind:value={f3aBaseDistance}
+                            />
+                        </label>
+                        <label class="field zone-field">
+                            <span>Zone Color</span>
+                            <div class="color-row">
+                                <input type="color" bind:value={f3aColor} />
+                                {#if f3aColor !== f3aDefaultColor}
+                                    <button
+                                        class="reset-color"
+                                        on:click={() =>
+                                            (f3aColor = f3aDefaultColor)}
+                                        >reset</button
+                                    >
+                                {/if}
+                            </div>
+                        </label>
+                    </div>
                 </section>
             {/if}
         </aside>
@@ -1316,6 +1324,22 @@
     .f3a-panel {
         display: grid;
         gap: 8px;
+    }
+
+    .zone-dist-color-row {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        flex-wrap: nowrap;
+    }
+
+    .zone-dist-color-row .zone-field {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .zone-dist-color-row .zone-field:last-child {
+        flex: 0 0 auto;
     }
 
     .zone-rotation-field {
