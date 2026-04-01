@@ -33,10 +33,10 @@
             shape-rendering="geometricPrecision"
         />
         <line
-            x1={geometry.left.x}
-            y1={geometry.left.y}
-            x2={geometry.right.x}
-            y2={geometry.right.y}
+            x1={geometry.leftBase.x}
+            y1={geometry.leftBase.y}
+            x2={geometry.rightBase.x}
+            y2={geometry.rightBase.y}
             stroke={rgb}
             stroke-width="1.5"
             stroke-linecap="butt"

@@ -23,7 +23,7 @@ export function projectF3AZoneGeometry(
         return null;
     }
 
-    const { apex, left, right } = calculateF3AZone(
+    const { apex, left, right, leftBase, rightBase } = calculateF3AZone(
         homePosition,
         rotation,
         baseDistance,
@@ -33,5 +33,7 @@ export function projectF3AZoneGeometry(
         apex: projectLngLat(map, apex),
         left: projectLngLat(map, left),
         right: projectLngLat(map, right),
+        leftBase: projectLngLat(map, leftBase),
+        rightBase: projectLngLat(map, rightBase),
     };
 }

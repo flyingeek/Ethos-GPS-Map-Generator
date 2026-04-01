@@ -72,7 +72,10 @@ export function calculateF3AZone(homePosition, rotation, baseDistance) {
     const axisBearing = normalizeBearing(Number(rotation) || 0);
     const halfApexAngleDeg = 60;
     const baseDistanceM = Math.max(1, Number(baseDistance) || 150);
-    const sideLength =
+    const ARM_DISTANCE_M = 600;
+    const armSideLength =
+        ARM_DISTANCE_M / Math.cos((Math.PI * halfApexAngleDeg) / 180);
+    const baseSideLength =
         baseDistanceM / Math.cos((Math.PI * halfApexAngleDeg) / 180);
 
     return {
@@ -80,12 +83,22 @@ export function calculateF3AZone(homePosition, rotation, baseDistance) {
         left: destinationPoint(
             homePosition,
             axisBearing - halfApexAngleDeg,
-            sideLength,
+            armSideLength,
         ),
         right: destinationPoint(
             homePosition,
             axisBearing + halfApexAngleDeg,
-            sideLength,
+            armSideLength,
+        ),
+        leftBase: destinationPoint(
+            homePosition,
+            axisBearing - halfApexAngleDeg,
+            baseSideLength,
+        ),
+        rightBase: destinationPoint(
+            homePosition,
+            axisBearing + halfApexAngleDeg,
+            baseSideLength,
         ),
     };
 }
