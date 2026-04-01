@@ -820,7 +820,12 @@
             </p>
         {:else}
             <div class="bounds-grid">
-                <h3 class="bounds-title">Ethos GPS Map Widget Settings</h3>
+                <div class="bounds-header">
+                    <h3 class="bounds-title">Ethos GPS Map Widget Settings</h3>
+                    <span class="bounds-save-hint"
+                        >ⓘ map should be saved in the /bitmaps/gps folder</span
+                    >
+                </div>
                 <div class="bounds-latlon">
                     <div class="bounds-row">
                         <span class="bounds-label">Latitude</span>
@@ -1213,7 +1218,19 @@
         color: #96adbc;
         letter-spacing: 0.06em;
         text-transform: uppercase;
+    }
+
+    .bounds-header {
+        display: flex;
+        align-items: center;
         border-bottom: 1px solid #304750;
+    }
+
+    .bounds-save-hint {
+        font-family: "Space Mono", monospace;
+        font-size: 0.75rem;
+        color: #96adbc;
+        padding: 7px 12px;
     }
 
     .bounds-info {
