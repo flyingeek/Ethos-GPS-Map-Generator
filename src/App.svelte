@@ -888,7 +888,7 @@
 
         <aside class="panel guide">
             <section class="home-panel" class:with-f3a={homePosition}>
-                <h2>Home Position</h2>
+                <h2>Reference Position</h2>
                 <p>
                     Lock the crosshair to the current center and keep it pinned
                     while moving the map.
@@ -896,11 +896,11 @@
                 <div class="home-actions">
                     {#if homePosition}
                         <button class="warn" on:click={clearHomePosition}
-                            >Clear Home</button
+                            >Clear Reference</button
                         >
                     {:else}
                         <button class="ok" on:click={setHomePosition}
-                            >Set Home Position</button
+                            >Set Reference Position</button
                         >
                     {/if}
                 </div>
@@ -919,8 +919,8 @@
                 <section class="f3a-panel">
                     <h2>F3A Zone</h2>
                     <p>
-                        Draw a yellow 120° triangle from the locked home
-                        position with the base centered {Math.max(
+                        Draw a 120° triangle from the reference position with
+                        the base centered {Math.max(
                             1,
                             Number(f3aBaseDistance) || 150,
                         ).toFixed(0)}m away.
