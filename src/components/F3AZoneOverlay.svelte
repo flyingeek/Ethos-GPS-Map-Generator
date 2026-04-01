@@ -16,7 +16,7 @@
             x2={geometry.left.x}
             y2={geometry.left.y}
             stroke={rgb}
-            stroke-width="2.5"
+            stroke-width="1.5"
             stroke-linecap="butt"
             filter={shadow}
             shape-rendering="geometricPrecision"
@@ -27,7 +27,7 @@
             x2={geometry.right.x}
             y2={geometry.right.y}
             stroke={rgb}
-            stroke-width="2.5"
+            stroke-width="1.5"
             stroke-linecap="butt"
             filter={shadow}
             shape-rendering="geometricPrecision"
