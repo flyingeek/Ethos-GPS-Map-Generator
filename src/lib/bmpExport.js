@@ -112,7 +112,7 @@ export function drawF3AZone(ctx, geometry, color) {
     ctx.shadowBlur = 4;
 
     // Arms (apex → tip)
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(apex.x, apex.y);
     ctx.lineTo(left.x, left.y);
