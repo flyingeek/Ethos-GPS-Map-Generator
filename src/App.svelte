@@ -295,7 +295,12 @@
                 });
 
                 map.on("rotate", () => {
-                    rotation = Number(map.getBearing().toFixed(1));
+                    const newBearing = Number(map.getBearing().toFixed(1));
+                    // MapLibre normalises -180 → 180 (same angle). Guard against that
+                    // causing a full-range jump on the RTL slider.
+                    if (Math.abs(newBearing - rotation) < 360) {
+                        rotation = newBearing;
+                    }
                     refreshProjectedOverlays();
                     if (isMeasureActive) {
                         updateMeasureLine();
