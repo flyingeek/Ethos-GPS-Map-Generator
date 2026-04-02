@@ -776,7 +776,6 @@
                     {/each}
                 </select>
             </label>
-
         </div>
 
         <div class="row rotate-row">
@@ -927,7 +926,7 @@
                         ? "Zoom locked — click to unlock"
                         : "Click to lock zoom"}
                 >
-                    Zoom: {zoom.toFixed(1)}
+                    {zoomLock ? "🔒 " : ""}Zoom: {zoom.toFixed(1)}
                 </button>
                 <button
                     class={`measure-btn hud-overlay ${isMeasureActive ? "active" : ""}`}
@@ -1357,7 +1356,6 @@
         font-family: "Space Mono", monospace;
         font-weight: 700;
         font-size: 0.74rem;
-        text-shadow: 1px 1px #000;
         backdrop-filter: blur(2px);
     }
 
@@ -1369,9 +1367,9 @@
     }
 
     .zoom-badge.locked {
-        background: rgba(180, 90, 10, 0.88);
-        border-color: #f5a454;
-        color: #fff8ee;
+        background: linear-gradient(135deg, #7fb729, #4a8f26);
+        border-color: #90db35;
+        color: #092409;
     }
 
     .measure-btn {
@@ -1399,9 +1397,9 @@
     }
 
     .measure-btn.active {
-        background: rgba(180, 90, 10, 0.88);
-        border-color: #f5a454;
-        color: #fff8ee;
+        background: linear-gradient(135deg, #7fb729, #4a8f26);
+        border-color: #90db35;
+        color: #092409;
     }
 
     .coords {
