@@ -131,10 +131,11 @@
             rgba(18, 28, 31, 0.92),
             rgba(8, 14, 18, 0.95)
         );
-        border: 1px solid #3b5f31;
         border-radius: 12px;
         padding: 12px;
-        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4);
+        box-shadow:
+            0 0 0 1px #3b5f31,
+            0 14px 40px rgba(0, 0, 0, 0.4);
         display: grid;
         gap: 8px;
     }

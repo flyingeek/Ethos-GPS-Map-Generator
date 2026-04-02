@@ -1411,7 +1411,7 @@
         padding: 6px 12px;
         color: #b8f971;
         background: rgba(4, 8, 10, 0.88);
-        border: 2px solid #8acf35;
+        box-shadow: 0 0 0 2px #8acf35;
         border-radius: 7px;
         font-family: "Space Mono", monospace;
         font-weight: 700;
