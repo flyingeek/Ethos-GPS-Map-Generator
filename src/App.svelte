@@ -904,16 +904,22 @@
                         )}° | {measureDistanceM.toFixed(1)}m / {(
                             measureDistanceM * 3.28084
                         ).toFixed(0)}ft |
+                        {#if measureTarget}
+                            Lat: {measureTarget.lat.toFixed(6)}, Lng: {measureTarget.lng.toFixed(6)}
+                        {:else}
+                            —
+                        {/if}
+                    {:else}
+                        {#if homePosition}
+                            <span
+                                class="coords-lock"
+                                title="Home position is locked">🔒</span
+                            >
+                        {/if}
+                        Lat: {hudReference.lat.toFixed(6)}, Lng: {hudReference.lng.toFixed(
+                            6,
+                        )}
                     {/if}
-                    {#if homePosition}
-                        <span
-                            class="coords-lock"
-                            title="Home position is locked">🔒</span
-                        >
-                    {/if}
-                    Lat: {hudReference.lat.toFixed(6)}, Lng: {hudReference.lng.toFixed(
-                        6,
-                    )}
                 </div>
                 {#if isMeasureActive}
                     <div class="measure-hint">
@@ -1291,6 +1297,8 @@
     .map-column {
         display: grid;
         gap: 10px;
+        width: 800px;
+        justify-items: center;
     }
 
     .map-box {
