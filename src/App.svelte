@@ -254,6 +254,10 @@
                     }),
                     "bottom-right",
                 );
+                map.addControl(
+                    new maplibreglApi.AttributionControl({ compact: false }),
+                    "bottom-left",
+                );
 
                 map.on("load", () => {
                     refreshBounds();
@@ -860,18 +864,29 @@
         <div class="map-column">
             <div class="coords" style={`min-width:${mapWidth}px;`}>
                 {#if isMeasureActive}
-                    📏 BRG {measureBearing.toFixed(1)}° | REL {measureRelativeAngle.toFixed(1)}° | {measureDistanceM.toFixed(1)}m / {(measureDistanceM * 3.28084).toFixed(0)}ft
+                    📏 BRG {measureBearing.toFixed(1)}° | REL {measureRelativeAngle.toFixed(
+                        1,
+                    )}° | {measureDistanceM.toFixed(1)}m / {(
+                        measureDistanceM * 3.28084
+                    ).toFixed(0)}ft
                     <span class="coords-sep">|</span>
                     {#if measureTarget}
-                        Lat: {measureTarget.lat.toFixed(6)}, Lng: {measureTarget.lng.toFixed(6)}
+                        Lat: {measureTarget.lat.toFixed(6)}, Lng: {measureTarget.lng.toFixed(
+                            6,
+                        )}
                     {:else}
                         —
                     {/if}
                 {:else}
                     {#if homePosition}
-                        <span class="coords-lock" title="Home position is locked">🔒</span>
+                        <span
+                            class="coords-lock"
+                            title="Home position is locked">🔒</span
+                        >
                     {/if}
-                    Lat: {hudReference.lat.toFixed(6)}, Lng: {hudReference.lng.toFixed(6)}
+                    Lat: {hudReference.lat.toFixed(6)}, Lng: {hudReference.lng.toFixed(
+                        6,
+                    )}
                 {/if}
             </div>
 
@@ -1532,6 +1547,19 @@
         border-top: none;
         font-family: "Space Mono", monospace;
         font-weight: 700;
+    }
+
+    :global(.maplibregl-ctrl-attrib),
+    :global(.maplibregl-ctrl-attrib.maplibregl-compact) {
+        background: rgba(255, 255, 255, 0.5) !important;
+        font-family: "Space Mono", monospace !important;
+        color: #000 !important;
+    }
+
+    :global(.maplibregl-ctrl-attrib a),
+    :global(.maplibregl-ctrl-attrib-inner) {
+        font-family: "Space Mono", monospace !important;
+        color: #000 !important;
     }
 
     :global(.map-box.measure-mode .maplibregl-canvas-container),

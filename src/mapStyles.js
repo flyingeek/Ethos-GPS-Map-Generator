@@ -21,7 +21,7 @@ export function buildRasterStyle(layerCode = 'y') {
         type: 'raster',
         tiles: tilesForLayer(layerCode),
         tileSize: 256,
-        attribution: 'Map data © Google'
+        attribution: '<span style="font-family:sans-serif">©</span> Google Maps',
       }
     },
     layers: [
