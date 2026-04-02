@@ -13,6 +13,7 @@
     export let inlineLabel = true;
     export let horizontalSliderWidth = 280;
     export let horizontalWrap = true;
+    export let rtl = false;
 
     function handleStep(delta) {
         if (onStepClick) {
@@ -52,8 +53,11 @@
         {/if}
         <div class="horizontal-row">
             {#if showStepButtons}
-                <button type="button" on:click={() => handleStep(-stepSize)}>
-                    -{stepSize}° ⟳
+                <button
+                    type="button"
+                    on:click={() => handleStep(rtl ? stepSize : -stepSize)}
+                >
+                    ⟲ {stepSize}°
                 </button>
             {/if}
             <input
@@ -62,11 +66,15 @@
                 max="180"
                 step="0.1"
                 bind:value
+                class:rtl
                 {disabled}
             />
             {#if showStepButtons}
-                <button type="button" on:click={() => handleStep(stepSize)}>
-                    ⟲ +{stepSize}°
+                <button
+                    type="button"
+                    on:click={() => handleStep(rtl ? -stepSize : stepSize)}
+                >
+                    {stepSize}° ⟳
                 </button>
             {/if}
             {#if showResetButton}
@@ -84,7 +92,11 @@
                 title="Scroll to adjust by 0.1°"
                 on:wheel|preventDefault={handleWheel}
             >
-                {Number(value).toFixed(1)}°
+                {Number(Math.abs(value)).toFixed(1)}°{value > 0
+                    ? "E"
+                    : value < 0
+                      ? "W"
+                      : ""}
                 <MouseWheelIcon size={18} />
             </span>
         </div>
@@ -147,6 +159,10 @@
         appearance: none;
         background: transparent;
         cursor: pointer;
+    }
+
+    input[type="range"].rtl {
+        direction: rtl;
     }
 
     .rotation-slider input[type="range"] {

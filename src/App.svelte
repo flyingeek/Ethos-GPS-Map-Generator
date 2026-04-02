@@ -786,6 +786,7 @@
                 stepSize={15}
                 onStepClick={rotateStep}
                 onReset={resetRotation}
+                rtl={true}
             />
 
             <div class="action-controls">
