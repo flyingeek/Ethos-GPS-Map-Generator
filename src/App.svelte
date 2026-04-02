@@ -53,6 +53,7 @@
     let homePosition = { lat: 44.714409685877825, lng: -0.7168534611050745 };
     let homeScreenPoint = null;
     let isF3AZoneVisible = true;
+    let isBoundsOpen = false;
     let f3aRotation = 42.5;
     let f3aBaseDistance = 150;
     const f3aDefaultColor = "#ffffff";
@@ -819,16 +820,27 @@
             </div>
         </div>
 
-        {#if rotation !== 0}
-            <p class="bounds-info">
-                ⓘ This map is only compatible with ethos-map-plot widget. Ethos
-                standard widget requires non rotated map.
-            </p>
-        {:else}
-            <p class="bounds-info">
-                It's easier to use ethos-map-plot widget. But here is some infos
-                for Ethos standard widget:
-            </p>
+        <button
+            class="bounds-info bounds-info-toggle"
+            class:bounds-info-static={rotation !== 0}
+            on:click={() => {
+                if (rotation === 0) isBoundsOpen = !isBoundsOpen;
+            }}
+        >
+            <span>
+                {#if rotation !== 0}
+                    ⓘ This map is only compatible with ethos-map-plot widget.
+                    Ethos standard widget requires non rotated map.
+                {:else}
+                    It's easier to use ethos-map-plot widget. But click here to
+                    see the Ethos standard widget settings.
+                {/if}
+            </span>
+            <span class="bounds-accordion-icon" class:hidden={rotation !== 0}
+                >{isBoundsOpen ? "▲" : "▼"}</span
+            >
+        </button>
+        {#if isBoundsOpen && rotation === 0}
             <div class="bounds-grid">
                 <div class="bounds-header">
                     <h3 class="bounds-title">Ethos GPS Map Widget Settings</h3>
@@ -1247,6 +1259,43 @@
         color: #7ab8cc;
         font-family: "Space Mono", monospace;
         font-size: 0.75rem;
+    }
+
+    .bounds-info-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        text-align: left;
+        background: none;
+        border: none;
+        border-radius: 0;
+        color: #7ab8cc;
+        cursor: pointer;
+        font-family: "Space Mono", monospace;
+        font-size: 0.75rem;
+        padding: 8px 12px;
+    }
+
+    .bounds-info-toggle:hover:not(.bounds-info-static) {
+        color: #a8d8eb;
+        background: rgba(255, 255, 255, 0.04);
+    }
+
+    .bounds-info-static {
+        cursor: default;
+        color: #7ab8cc;
+    }
+
+    .bounds-accordion-icon.hidden {
+        visibility: hidden;
+    }
+
+    .bounds-accordion-icon {
+        font-size: 0.65rem;
+        opacity: 0.7;
+        flex-shrink: 0;
     }
 
     .bounds-row {

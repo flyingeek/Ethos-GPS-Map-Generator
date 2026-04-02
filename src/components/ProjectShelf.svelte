@@ -12,6 +12,8 @@
     let saveNotice = "";
     let saveNoticeTimer = null;
     let isDragOver = false;
+    let selectorPulse = false;
+    let selectorPulseTimer = null;
 
     onMount(() => {
         loadProjectsFromStorage();
@@ -20,8 +22,22 @@
             if (saveNoticeTimer) {
                 clearTimeout(saveNoticeTimer);
             }
+            if (selectorPulseTimer) {
+                clearTimeout(selectorPulseTimer);
+            }
         };
     });
+
+    function pulseSelector() {
+        selectorPulse = true;
+        if (selectorPulseTimer) {
+            clearTimeout(selectorPulseTimer);
+        }
+        selectorPulseTimer = setTimeout(() => {
+            selectorPulse = false;
+            selectorPulseTimer = null;
+        }, 1200);
+    }
 
     function loadProjectsFromStorage() {
         try {
@@ -46,6 +62,29 @@
         } catch {
             // storage full or unavailable
         }
+    }
+
+    function upsertSavedProject(snapshot) {
+        const existingIndex = savedProjects.findIndex(
+            (p) => p.name === snapshot.name,
+        );
+
+        if (existingIndex >= 0) {
+            savedProjects[existingIndex] = snapshot;
+            savedProjects = [...savedProjects];
+            selectedSaveIndex = existingIndex;
+            return;
+        }
+
+        if (savedProjects.length < MAX_SAVED_PROJECTS) {
+            savedProjects = [...savedProjects, snapshot];
+            selectedSaveIndex = savedProjects.length - 1;
+            return;
+        }
+
+        // Max reached — replace the oldest entry
+        savedProjects = [snapshot, ...savedProjects.slice(1)];
+        selectedSaveIndex = 0;
     }
 
     function saveProject() {
@@ -77,23 +116,17 @@
                 1,
                 Number(projectState.f3aBaseDistance) || 150,
             ),
+            f3aColor:
+                typeof projectState.f3aColor === "string" &&
+                /^#[0-9a-fA-F]{6}$/.test(projectState.f3aColor)
+                    ? projectState.f3aColor
+                    : "#ffffff",
         };
 
-        const existingIndex = savedProjects.findIndex((p) => p.name === name);
-        if (existingIndex >= 0) {
-            savedProjects[existingIndex] = snapshot;
-            savedProjects = [...savedProjects];
-            selectedSaveIndex = existingIndex;
-        } else if (savedProjects.length < MAX_SAVED_PROJECTS) {
-            savedProjects = [...savedProjects, snapshot];
-            selectedSaveIndex = savedProjects.length - 1;
-        } else {
-            // Max reached — replace the oldest entry
-            savedProjects = [snapshot, ...savedProjects.slice(1)];
-            selectedSaveIndex = 0;
-        }
+        upsertSavedProject(snapshot);
 
         persistProjects();
+        pulseSelector();
 
         saveNotice = `Saved: ${name}`;
         if (saveNoticeTimer) {
@@ -154,8 +187,48 @@
             return;
         }
 
+        const importedName =
+            project.mapTitle?.trim() || project.name || "EthosMap";
+        const importedSnapshot = {
+            name: importedName,
+            savedAt: new Date().toISOString(),
+            mapTitle: project.mapTitle ?? project.name ?? "EthosMap",
+            resolution: project.resolution,
+            customW: project.customW,
+            customH: project.customH,
+            mapType: project.mapType,
+            zoomLock: Boolean(project.zoomLock),
+            rotation: Number(project.rotation) || 0,
+            center: {
+                lat: Number(project.center?.lat),
+                lng: Number(project.center?.lng),
+            },
+            zoom: Number(project.zoom),
+            homePosition: project.homePosition
+                ? {
+                      lat: Number(project.homePosition.lat),
+                      lng: Number(project.homePosition.lng),
+                  }
+                : null,
+            f3aZoneVisible: Boolean(project.f3aZoneVisible),
+            f3aRotation: Number(project.f3aRotation) || 0,
+            f3aBaseDistance: Math.max(
+                1,
+                Number(project.f3aBaseDistance) || 150,
+            ),
+            f3aColor:
+                typeof project.f3aColor === "string" &&
+                /^#[0-9a-fA-F]{6}$/.test(project.f3aColor)
+                    ? project.f3aColor
+                    : "#ffffff",
+        };
+
+        upsertSavedProject(importedSnapshot);
+        persistProjects();
+        pulseSelector();
+
         dispatch("loadproject", { project });
-        saveNotice = `Imported: ${project.name}`;
+        saveNotice = `Imported & saved: ${importedName}`;
         if (saveNoticeTimer) clearTimeout(saveNoticeTimer);
         saveNoticeTimer = setTimeout(() => {
             saveNotice = "";
@@ -166,7 +239,11 @@
 
 <div class="project-shelf">
     <span class="project-shelf-label">Projects</span>
-    <select class="project-select" bind:value={selectedSaveIndex}>
+    <select
+        class="project-select"
+        class:selection-pulse={selectorPulse}
+        bind:value={selectedSaveIndex}
+    >
         <option value={-1} disabled
             >{savedProjects.length === 0
                 ? "No saved projects"
@@ -240,6 +317,21 @@
     .project-select {
         min-width: 160px;
         max-width: 220px;
+    }
+
+    .project-select.selection-pulse {
+        border-color: #90db35;
+        box-shadow: 0 0 0 2px rgba(144, 219, 53, 0.3);
+        animation: project-select-pulse 1.2s ease-out;
+    }
+
+    @keyframes project-select-pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(144, 219, 53, 0.45);
+        }
+        100% {
+            box-shadow: 0 0 0 8px rgba(144, 219, 53, 0);
+        }
     }
 
     button {
