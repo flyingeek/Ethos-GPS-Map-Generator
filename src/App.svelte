@@ -858,6 +858,23 @@
 
     <section class="workspace">
         <div class="map-column">
+            <div class="coords" style={`min-width:${mapWidth}px;`}>
+                {#if isMeasureActive}
+                    📏 BRG {measureBearing.toFixed(1)}° | REL {measureRelativeAngle.toFixed(1)}° | {measureDistanceM.toFixed(1)}m / {(measureDistanceM * 3.28084).toFixed(0)}ft
+                    <span class="coords-sep">|</span>
+                    {#if measureTarget}
+                        Lat: {measureTarget.lat.toFixed(6)}, Lng: {measureTarget.lng.toFixed(6)}
+                    {:else}
+                        —
+                    {/if}
+                {:else}
+                    {#if homePosition}
+                        <span class="coords-lock" title="Home position is locked">🔒</span>
+                    {/if}
+                    Lat: {hudReference.lat.toFixed(6)}, Lng: {hudReference.lng.toFixed(6)}
+                {/if}
+            </div>
+
             <div
                 class="map-box"
                 class:measure-mode={isMeasureActive}
@@ -897,30 +914,6 @@
                 >
                     {isMeasureActive ? "Stop Measure" : "Measure"}
                 </button>
-                <div class="coords hud-overlay">
-                    {#if isMeasureActive}
-                        📏 BRG {measureBearing.toFixed(1)}° | REL {measureRelativeAngle.toFixed(
-                            1,
-                        )}° | {measureDistanceM.toFixed(1)}m / {(
-                            measureDistanceM * 3.28084
-                        ).toFixed(0)}ft |
-                        {#if measureTarget}
-                            Lat: {measureTarget.lat.toFixed(6)}, Lng: {measureTarget.lng.toFixed(6)}
-                        {:else}
-                            —
-                        {/if}
-                    {:else}
-                        {#if homePosition}
-                            <span
-                                class="coords-lock"
-                                title="Home position is locked">🔒</span
-                            >
-                        {/if}
-                        Lat: {hudReference.lat.toFixed(6)}, Lng: {hudReference.lng.toFixed(
-                            6,
-                        )}
-                    {/if}
-                </div>
                 {#if isMeasureActive}
                     <div class="measure-hint">
                         Right-click to exit measure mode quickly
@@ -1351,8 +1344,7 @@
     }
 
     .zoom-badge,
-    .measure-btn,
-    .coords {
+    .measure-btn {
         position: absolute;
         right: 10px;
         color: #b8f971;
@@ -1398,14 +1390,27 @@
     }
 
     .coords {
-        bottom: 12px;
-        max-width: calc(100% - 156px);
-        left: 10px;
-        right: auto;
-        padding: 5px 8px;
+        align-self: center;
+        max-width: 100%;
+        box-sizing: border-box;
+        padding: 6px 12px;
+        color: #b8f971;
+        background: rgba(4, 8, 10, 0.88);
+        border: 2px solid #8acf35;
+        border-radius: 7px;
+        font-family: "Space Mono", monospace;
+        font-weight: 700;
+        font-size: 0.74rem;
+        text-shadow: 1px 1px #000;
+        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        white-space: nowrap;
+        text-align: center;
+    }
+
+    .coords-sep {
+        margin: 0 4px;
+        color: #6aaf30;
     }
 
     .coords-lock {
