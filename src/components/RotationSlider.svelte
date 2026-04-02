@@ -32,7 +32,13 @@
     }
 
     function handleWheel(event) {
-        const step = event.deltaY < 0 ? 0.1 : -0.1;
+        const step = rtl
+            ? event.deltaY < 0
+                ? 0.1
+                : -0.1
+            : event.deltaY < 0
+              ? -0.1
+              : 0.1;
         value = normalizeAngle(value + step);
     }
 </script>
