@@ -151,5 +151,5 @@ export function toDms(decimal, isLat) {
         : decimal >= 0
           ? "E"
           : "W";
-    return `${degrees}° ${minutes}' ${seconds}" ${direction}`;
+    return `${degrees}°${minutes}'${seconds}"${direction}`;
 }

@@ -84,7 +84,7 @@
 <div class="search-panel" style={`width:${mapWidth}px;max-width:100%;`}>
     <div class="search-row">
         <label class="search-field">
-            <span>Search Place (No API Key)</span>
+            <span>Search Place</span>
             <input
                 type="text"
                 bind:value={searchQuery}

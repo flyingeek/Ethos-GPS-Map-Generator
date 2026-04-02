@@ -819,10 +819,14 @@
 
         {#if rotation !== 0}
             <p class="bounds-info">
-                ⓘ Ethos GPS Map Widget only supports maps oriented North Up
-                (rotation 0°)
+                ⓘ This map is only compatible with ethos-map-plot widget. Ethos
+                standard widget requires non rotated map.
             </p>
         {:else}
+            <p class="bounds-info">
+                It's easier to use ethos-map-plot widget. But here is some infos
+                for Ethos standard widget:
+            </p>
             <div class="bounds-grid">
                 <div class="bounds-header">
                     <h3 class="bounds-title">Ethos GPS Map Widget Settings</h3>
@@ -959,9 +963,7 @@
                 </div>
                 <p class="home-coords">
                     {#if homePosition}
-                        🔒 {homePosition.lat.toFixed(6)}, {homePosition.lng.toFixed(
-                            6,
-                        )}
+                        🔒 {toDms(homePosition.lat, true)}, {toDms(homePosition.lng, false)}
                     {:else}
                         Not set
                     {/if}
