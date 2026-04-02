@@ -777,10 +777,6 @@
                 </select>
             </label>
 
-            <label class="lock-field">
-                <input type="checkbox" bind:checked={zoomLock} />
-                <span>Zoom Lock</span>
-            </label>
         </div>
 
         <div class="row rotate-row">
@@ -924,14 +920,20 @@
                     />
                     <div class="crosshair hud-overlay"></div>
                 {/if}
-                <div class="zoom-badge hud-overlay">
+                <button
+                    class={`zoom-badge hud-overlay ${zoomLock ? "locked" : ""}`}
+                    on:click={() => (zoomLock = !zoomLock)}
+                    title={zoomLock
+                        ? "Zoom locked — click to unlock"
+                        : "Click to lock zoom"}
+                >
                     Zoom: {zoom.toFixed(1)}
-                </div>
+                </button>
                 <button
                     class={`measure-btn hud-overlay ${isMeasureActive ? "active" : ""}`}
                     on:click={toggleMeasure}
                 >
-                    {isMeasureActive ? "Stop Measure" : "Measure"}
+                    Measure
                 </button>
                 {#if isMeasureActive}
                     <div class="measure-hint">
@@ -963,7 +965,10 @@
                 </div>
                 <p class="home-coords">
                     {#if homePosition}
-                        🔒 {toDms(homePosition.lat, true)}, {toDms(homePosition.lng, false)}
+                        🔒 {toDms(homePosition.lat, true)}, {toDms(
+                            homePosition.lng,
+                            false,
+                        )}
                     {:else}
                         Not set
                     {/if}
@@ -1148,25 +1153,6 @@
     button.ghost {
         background: transparent;
         border-color: #4a666f;
-    }
-
-    .lock-field {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: rgba(11, 20, 24, 0.95);
-        border: 1px solid #3a5057;
-        padding: 8px 11px;
-        border-radius: 7px;
-        min-height: 38px;
-        font-weight: 700;
-    }
-
-    .lock-field input {
-        min-height: unset;
-        width: 16px;
-        height: 16px;
-        margin: 0;
     }
 
     .rotate-row {
@@ -1378,22 +1364,33 @@
     .zoom-badge {
         top: 10px;
         padding: 5px 9px;
+        cursor: pointer;
+        min-height: unset;
+    }
+
+    .zoom-badge.locked {
+        background: rgba(180, 90, 10, 0.88);
+        border-color: #f5a454;
+        color: #fff8ee;
     }
 
     .measure-btn {
         top: 46px;
         padding: 5px 9px;
         cursor: pointer;
+        min-height: unset;
     }
 
     .measure-hint {
         position: absolute;
-        left: 20px;
+        left: 50%;
+        transform: translateX(-50%);
         bottom: -2px;
         color: #8acf35;
         font-family: "Space Mono", monospace;
         font-size: 0.7rem;
         font-weight: 700;
+        white-space: nowrap;
         text-shadow:
             -1px -1px #000,
             1px -1px #000,
@@ -1402,8 +1399,9 @@
     }
 
     .measure-btn.active {
-        color: #0b2105;
-        background: #8ad52f;
+        background: rgba(180, 90, 10, 0.88);
+        border-color: #f5a454;
+        color: #fff8ee;
     }
 
     .coords {
