@@ -22,10 +22,13 @@ export async function createExportArtifacts({
     rotation,
     zoom,
     baseName,
+    mapType,
+    center,
     homePosition,
     f3aZoneVisible,
     f3aRotation,
     f3aBaseDistance,
+    f3aColor,
     f3aOverlay,
 }) {
     const bmpBlob = await createBmpBlob(map, mapViewport, mapWidth, mapHeight, 16, f3aOverlay ?? null);
@@ -38,10 +41,13 @@ export async function createExportArtifacts({
         mapTitle: baseName,
         mapWidth,
         mapHeight,
+        mapType,
+        center,
         homePosition,
         f3aZoneVisible,
         f3aRotation,
         f3aBaseDistance,
+        f3aColor,
     });
     const metaBlob = createMetadataBlob({
         map,

@@ -530,10 +530,13 @@
                 rotation,
                 zoom,
                 baseName,
+                mapType,
+                center,
                 homePosition,
                 f3aZoneVisible: isF3AZoneVisible,
                 f3aRotation,
                 f3aBaseDistance,
+                f3aColor,
                 f3aOverlay:
                     isF3AZoneVisible && f3aZoneGeometry
                         ? { geometry: f3aZoneGeometry, color: f3aColor }
@@ -611,10 +614,13 @@
                 rotation,
                 zoom,
                 baseName,
+                mapType,
+                center,
                 homePosition,
                 f3aZoneVisible: isF3AZoneVisible,
                 f3aRotation,
                 f3aBaseDistance,
+                f3aColor,
                 f3aOverlay:
                     isF3AZoneVisible && f3aZoneGeometry
                         ? { geometry: f3aZoneGeometry, color: f3aColor }

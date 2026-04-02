@@ -1,5 +1,6 @@
 <script>
     import { createEventDispatcher, onMount } from "svelte";
+    import { parseLuaProject } from "../lib/exportBlobs.js";
 
     export let projectState;
 
@@ -10,6 +11,7 @@
     let selectedSaveIndex = -1;
     let saveNotice = "";
     let saveNoticeTimer = null;
+    let isDragOver = false;
 
     onMount(() => {
         loadProjectsFromStorage();
@@ -115,6 +117,51 @@
         selectedSaveIndex = -1;
         persistProjects();
     }
+
+    function handleDragOver(event) {
+        if (event.dataTransfer?.types?.includes("Files")) {
+            event.preventDefault();
+            isDragOver = true;
+        }
+    }
+
+    function handleDragLeave(event) {
+        // Only clear when leaving the drop zone itself, not a child element
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+            isDragOver = false;
+        }
+    }
+
+    async function handleDrop(event) {
+        event.preventDefault();
+        isDragOver = false;
+
+        const file = [...(event.dataTransfer?.files ?? [])].find((f) =>
+            f.name.toLowerCase().endsWith(".lua"),
+        );
+        if (!file) return;
+
+        const text = await file.text();
+        const project = parseLuaProject(text);
+
+        if (!project) {
+            saveNotice = "Invalid .lua file";
+            if (saveNoticeTimer) clearTimeout(saveNoticeTimer);
+            saveNoticeTimer = setTimeout(() => {
+                saveNotice = "";
+                saveNoticeTimer = null;
+            }, 2200);
+            return;
+        }
+
+        dispatch("loadproject", { project });
+        saveNotice = `Imported: ${project.name}`;
+        if (saveNoticeTimer) clearTimeout(saveNoticeTimer);
+        saveNoticeTimer = setTimeout(() => {
+            saveNotice = "";
+            saveNoticeTimer = null;
+        }, 1600);
+    }
 </script>
 
 <div class="project-shelf">
@@ -129,12 +176,23 @@
             <option value={i}>{p.name}</option>
         {/each}
     </select>
-    <button
-        class="ghost"
-        disabled={selectedSaveIndex < 0}
-        on:click={loadSelectedProject}
-        title="Load selected project">Load</button
+    <div
+        class="load-drop-zone"
+        class:drag-over={isDragOver}
+        role="button"
+        tabindex="-1"
+        on:dragover={handleDragOver}
+        on:dragleave={handleDragLeave}
+        on:drop={handleDrop}
     >
+        <button
+            class="ghost"
+            disabled={selectedSaveIndex < 0}
+            on:click={loadSelectedProject}
+            title="Load selected project — or drop a .lua file here"
+            >Load</button
+        >
+    </div>
     <button
         class="ghost del-btn"
         disabled={selectedSaveIndex < 0}
@@ -208,6 +266,17 @@
     .del-btn {
         min-width: unset;
         padding: 8px 10px;
+    }
+
+    .load-drop-zone {
+        display: contents;
+    }
+
+    .load-drop-zone.drag-over button {
+        border-color: #7fb729;
+        background: #131f0a;
+        color: #a9e65c;
+        box-shadow: 0 0 0 2px rgba(127, 183, 41, 0.35);
     }
 
     .save-notice {
