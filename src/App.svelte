@@ -1299,7 +1299,7 @@
         border-radius: 12px;
         overflow: hidden;
         box-shadow:
-            0 0 0 4px rgba(72, 119, 43, 0.75),
+            0 0 0 2px rgba(72, 119, 43, 0.75),
             0 0 24px rgba(137, 220, 51, 0.22);
         background: #000;
         flex-shrink: 0;
