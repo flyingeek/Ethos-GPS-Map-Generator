@@ -35,7 +35,7 @@
 
     let sdHandle = null;
     let isSdLinked = false;
-    let syncMessage = "Save to folder";
+    let syncMessage = "Export to folder";
     let supportsSdSync = false;
 
     let bounds = { north: 0, south: 0, west: 0, east: 0 };
@@ -645,7 +645,7 @@
         syncMessage = bmpOk && luaOk ? "Saved!" : "Save Failed";
 
         setTimeout(() => {
-            syncMessage = "Save to folder";
+            syncMessage = "Export to folder";
         }, 1800);
     }
     function handleLoadProject(event) {
@@ -1173,7 +1173,7 @@
     }
 
     .sync-group > .ok {
-        width: 120px;
+        width: 130px;
     }
 
     .sd-status-link {
