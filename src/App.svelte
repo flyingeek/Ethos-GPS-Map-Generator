@@ -20,6 +20,7 @@
     import F3AZoneOverlay from "./components/F3AZoneOverlay.svelte";
     import HomeCrosshairOverlay from "./components/HomeCrosshairOverlay.svelte";
     import MeasureLineOverlay from "./components/MeasureLineOverlay.svelte";
+    import ethosLogoUrl from "../ethos logo.png";
 
     let map;
     let mapContainer;
@@ -716,7 +717,7 @@
 
 <div class="page-shell">
     <header class="header">
-        <img src="/ethos logo.png" alt="Ethos" class="logo" />
+        <img src={ethosLogoUrl} alt="Ethos" class="logo" />
         <div>
             <h1>Ethos GPS Map Generator</h1>
             <p>Svelte Edition with rotation-aware exports</p>
