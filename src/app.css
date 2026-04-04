@@ -5,6 +5,12 @@
   background: radial-gradient(circle at top right, #20312d 0%, #101719 38%, #090d0f 100%);
 }
 
+html {
+  min-height: 100%;
+  background-color: #090d0f;
+  background-image: radial-gradient(circle at top right, #20312d 0%, #101719 38%, #090d0f 100%);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -13,7 +19,8 @@ body {
   margin: 0;
   min-height: 100vh;
   color: #f3f6f8;
-  background: transparent;
+  background-color: #090d0f;
+  background-image: radial-gradient(circle at top right, #20312d 0%, #101719 38%, #090d0f 100%);
 }
 
 a {
