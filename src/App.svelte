@@ -107,6 +107,11 @@
     }
 
     $: if (map) {
+        map.dragRotate.disable();
+        map.touchPitch.disable();
+    }
+
+    $: if (map) {
         map.setBearing(rotation);
     }
 
