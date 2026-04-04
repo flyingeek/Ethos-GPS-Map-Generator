@@ -1,4 +1,5 @@
 <script>
+    import { onMount } from "svelte";
     import { normalizeAngle } from "../lib/geoUtils.js";
     import MouseWheelIcon from "./MouseWheelIcon.svelte";
 
@@ -14,6 +15,21 @@
     export let horizontalSliderWidth = 280;
     export let horizontalWrap = true;
     export let rtl = false;
+
+    let isIOS = false;
+    let effectiveStepSize = stepSize;
+    let effectiveShowStepButtons = showStepButtons;
+
+    $: effectiveStepSize = isIOS ? 0.1 : stepSize;
+    $: effectiveShowStepButtons = showStepButtons;
+
+    onMount(() => {
+        const ua = navigator.userAgent || "";
+        const isiOSDevice = /iPad|iPhone|iPod/i.test(ua);
+        const isIPadOSDesktopUA =
+            navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+        isIOS = isiOSDevice || isIPadOSDesktopUA;
+    });
 
     function handleStep(delta) {
         if (onStepClick) {
@@ -58,12 +74,15 @@
             <span class="label">{label}</span>
         {/if}
         <div class="horizontal-row">
-            {#if showStepButtons}
+            {#if effectiveShowStepButtons}
                 <button
                     type="button"
-                    on:click={() => handleStep(rtl ? stepSize : -stepSize)}
+                    on:click={() =>
+                        handleStep(
+                            rtl ? effectiveStepSize : -effectiveStepSize,
+                        )}
                 >
-                    ⟲ {stepSize}°
+                    ⟲ {effectiveStepSize.toFixed(1)}°
                 </button>
             {/if}
             <input
@@ -75,12 +94,15 @@
                 class:rtl
                 {disabled}
             />
-            {#if showStepButtons}
+            {#if effectiveShowStepButtons}
                 <button
                     type="button"
-                    on:click={() => handleStep(rtl ? -stepSize : stepSize)}
+                    on:click={() =>
+                        handleStep(
+                            rtl ? -effectiveStepSize : effectiveStepSize,
+                        )}
                 >
-                    {stepSize}° ⟳
+                    {effectiveStepSize.toFixed(1)}° ⟳
                 </button>
             {/if}
             {#if showResetButton}
@@ -246,6 +268,9 @@
         cursor: pointer;
         font-size: 0.85rem;
         transition: all 0.15s;
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
     }
 
     button:hover:not(:disabled) {
