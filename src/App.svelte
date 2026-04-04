@@ -1035,6 +1035,8 @@
                             inlineLabel={false}
                             horizontalSliderWidth={110}
                             horizontalWrap={false}
+                            forceStepButtonsOnTouch={true}
+                            twoLineSteps={true}
                         />
                     </label>
                     <div class="zone-dist-color-row">

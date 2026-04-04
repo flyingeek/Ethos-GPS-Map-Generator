@@ -15,13 +15,16 @@
     export let horizontalSliderWidth = 280;
     export let horizontalWrap = true;
     export let rtl = false;
+    export let forceStepButtonsOnTouch = false;
+    export let twoLineSteps = false;
 
     let isIOS = false;
     let effectiveStepSize = stepSize;
     let effectiveShowStepButtons = showStepButtons;
 
     $: effectiveStepSize = isIOS ? 0.1 : stepSize;
-    $: effectiveShowStepButtons = showStepButtons;
+    $: effectiveShowStepButtons =
+        showStepButtons || (forceStepButtonsOnTouch && isIOS);
 
     onMount(() => {
         const ua = navigator.userAgent || "";
@@ -57,6 +60,35 @@
               : 0.1;
         value = normalizeAngle(value + step);
     }
+
+    let autoRepeatTimer = null;
+    let autoRepeatInterval = null;
+    let autoRepeatActive = false;
+
+    function startAutoRepeat(delta) {
+        if (!isIOS) return;
+        autoRepeatActive = false;
+        autoRepeatTimer = setTimeout(() => {
+            autoRepeatActive = true;
+            handleStep(delta);
+            autoRepeatInterval = setInterval(() => handleStep(delta), 200);
+        }, 300);
+    }
+
+    function stopAutoRepeat() {
+        clearTimeout(autoRepeatTimer);
+        clearInterval(autoRepeatInterval);
+        autoRepeatTimer = null;
+        autoRepeatInterval = null;
+    }
+
+    function handleStepClick(delta) {
+        if (autoRepeatActive) {
+            autoRepeatActive = false;
+            return;
+        }
+        handleStep(delta);
+    }
 </script>
 
 <div
@@ -73,61 +105,148 @@
         {#if !inlineLabel}
             <span class="label">{label}</span>
         {/if}
-        <div class="horizontal-row">
-            {#if effectiveShowStepButtons}
+        {#if twoLineSteps && effectiveShowStepButtons}
+            <div class="horizontal-row two-line-row2">
+                {#if showResetButton}
+                    <button
+                        type="button"
+                        class="ghost"
+                        on:click={handleReset}
+                        {disabled}
+                    >
+                        Reset
+                    </button>
+                {/if}
+                <span
+                    class="bearing"
+                    title="Scroll to adjust by 0.1°"
+                    on:wheel|preventDefault={handleWheel}
+                >
+                    {Number(Math.abs(value)).toFixed(1)}°{value > 0
+                        ? "E"
+                        : value < 0
+                          ? "W"
+                          : ""}
+                    <MouseWheelIcon size={18} />
+                </span>
+            </div>
+            <div class="horizontal-row two-line-row1">
                 <button
                     type="button"
                     on:click={() =>
-                        handleStep(
+                        handleStepClick(
                             rtl ? effectiveStepSize : -effectiveStepSize,
                         )}
+                    on:pointerdown={() =>
+                        startAutoRepeat(
+                            rtl ? effectiveStepSize : -effectiveStepSize,
+                        )}
+                    on:pointerup={stopAutoRepeat}
+                    on:pointercancel={stopAutoRepeat}
+                    on:pointerleave={stopAutoRepeat}
+                    {disabled}
                 >
                     ⟲ {effectiveStepSize.toFixed(1)}°
                 </button>
-            {/if}
-            <input
-                type="range"
-                min="-180"
-                max="180"
-                step="0.1"
-                bind:value
-                class:rtl
-                {disabled}
-            />
-            {#if effectiveShowStepButtons}
+                <input
+                    type="range"
+                    min="-180"
+                    max="180"
+                    step="0.1"
+                    bind:value
+                    class:rtl
+                    class="two-line-range"
+                    {disabled}
+                />
                 <button
                     type="button"
                     on:click={() =>
-                        handleStep(
+                        handleStepClick(
                             rtl ? -effectiveStepSize : effectiveStepSize,
                         )}
+                    on:pointerdown={() =>
+                        startAutoRepeat(
+                            rtl ? -effectiveStepSize : effectiveStepSize,
+                        )}
+                    on:pointerup={stopAutoRepeat}
+                    on:pointercancel={stopAutoRepeat}
+                    on:pointerleave={stopAutoRepeat}
+                    {disabled}
                 >
                     {effectiveStepSize.toFixed(1)}° ⟳
                 </button>
-            {/if}
-            {#if showResetButton}
-                <button
-                    type="button"
-                    class="ghost"
-                    on:click={handleReset}
+            </div>
+        {:else}
+            <div class="horizontal-row">
+                {#if effectiveShowStepButtons}
+                    <button
+                        type="button"
+                        on:click={() =>
+                            handleStepClick(
+                                rtl ? effectiveStepSize : -effectiveStepSize,
+                            )}
+                        on:pointerdown={() =>
+                            startAutoRepeat(
+                                rtl ? effectiveStepSize : -effectiveStepSize,
+                            )}
+                        on:pointerup={stopAutoRepeat}
+                        on:pointercancel={stopAutoRepeat}
+                        on:pointerleave={stopAutoRepeat}
+                    >
+                        ⟲ {effectiveStepSize.toFixed(1)}°
+                    </button>
+                {/if}
+                <input
+                    type="range"
+                    min="-180"
+                    max="180"
+                    step="0.1"
+                    bind:value
+                    class:rtl
                     {disabled}
+                />
+                {#if effectiveShowStepButtons}
+                    <button
+                        type="button"
+                        on:click={() =>
+                            handleStepClick(
+                                rtl ? -effectiveStepSize : effectiveStepSize,
+                            )}
+                        on:pointerdown={() =>
+                            startAutoRepeat(
+                                rtl ? -effectiveStepSize : effectiveStepSize,
+                            )}
+                        on:pointerup={stopAutoRepeat}
+                        on:pointercancel={stopAutoRepeat}
+                        on:pointerleave={stopAutoRepeat}
+                    >
+                        {effectiveStepSize.toFixed(1)}° ⟳
+                    </button>
+                {/if}
+                {#if showResetButton}
+                    <button
+                        type="button"
+                        class="ghost"
+                        on:click={handleReset}
+                        {disabled}
+                    >
+                        Reset
+                    </button>
+                {/if}
+                <span
+                    class="bearing"
+                    title="Scroll to adjust by 0.1°"
+                    on:wheel|preventDefault={handleWheel}
                 >
-                    Reset
-                </button>
-            {/if}
-            <span
-                class="bearing"
-                title="Scroll to adjust by 0.1°"
-                on:wheel|preventDefault={handleWheel}
-            >
-                {Number(Math.abs(value)).toFixed(1)}°{value > 0
-                    ? "E"
-                    : value < 0
-                      ? "W"
-                      : ""}
-                <MouseWheelIcon size={18} />
-            </span>
-        </div>
+                    {Number(Math.abs(value)).toFixed(1)}°{value > 0
+                        ? "E"
+                        : value < 0
+                          ? "W"
+                          : ""}
+                    <MouseWheelIcon size={18} />
+                </span>
+            </div>
+        {/if}
     </div>
 </div>
 
@@ -196,6 +315,22 @@
     .rotation-slider input[type="range"] {
         width: var(--horizontal-slider-width);
         flex: 0 0 var(--horizontal-slider-width);
+    }
+
+    .two-line-row1 {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .two-line-row1 input.two-line-range {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: auto;
+    }
+
+    .two-line-row2 {
+        width: fit-content;
+        margin: 0 auto;
     }
 
     input[type="range"]::-webkit-slider-runnable-track {
@@ -271,6 +406,7 @@
         touch-action: manipulation;
         -webkit-user-select: none;
         user-select: none;
+        -webkit-touch-callout: none;
     }
 
     button:hover:not(:disabled) {
