@@ -130,6 +130,8 @@
     const MAPLIBRE_JS_URL = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js`;
     const SD_BITMAPS_PATH = "";
     const SD_METADATA_PATH = "";
+    const WIDGET_URL = "https://github.com/flyingeek/ethos-gps-tracker";
+    const WIDGET_NAME = "GPS Tracker";
 
     let maplibreglApi = null;
 
@@ -834,11 +836,17 @@
         >
             <span>
                 {#if rotation !== 0}
-                    ⓘ This map is only compatible with ethos-map-plot widget.
-                    Ethos standard widget requires non rotated map.
+                    ⓘ This map is only compatible with <a
+                        href={WIDGET_URL}
+                        target="_blank"
+                        rel="noopener noreferrer">{WIDGET_NAME}</a
+                    > widget. Ethos standard widget requires non rotated map.
                 {:else}
-                    It's easier to use ethos-map-plot widget. But click here to
-                    see the Ethos standard widget settings.
+                    It's easier to use <a
+                        href={WIDGET_URL}
+                        target="_blank"
+                        rel="noopener noreferrer">{WIDGET_NAME}</a
+                    >. But click here to see the Ethos standard widget settings.
                 {/if}
             </span>
             <span class="bounds-accordion-icon" class:hidden={rotation !== 0}
