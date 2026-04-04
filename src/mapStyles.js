@@ -1,5 +1,5 @@
 const GOOGLE_SUBDOMAINS = ['mt0', 'mt1', 'mt2', 'mt3'];
-const MAPBOX_TOKEN = 'pk.eyJ1IjoiZmx5aW5nZWVrIiwiYSI6ImNqcmtsb2c3MjBtbDE0NHF3bWM1OHJrYTUifQ.KoP6rRLsaH1xPZX6MMCZhQ';
+const MAPBOX_TOKEN = 'pk.eyJ1IjoiZmx5aW5nZWVrIiwiYSI6ImNtbmtiejk0ZjB0aHgycnF1a2hleXlvMGIifQ.hWJP11bj6dAcHJPbOFFrPA';
 
 function tilesForLayer(layerCode) {
   return GOOGLE_SUBDOMAINS.map((subdomain) =>
