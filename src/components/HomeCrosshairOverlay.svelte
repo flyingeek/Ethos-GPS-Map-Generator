@@ -83,7 +83,7 @@
 
     :global(.snap-guide) {
         stroke: #95ef37;
-        stroke-width: 1;
+        stroke-width: 2;
         stroke-dasharray: 4 5;
         opacity: 0.45;
         shape-rendering: geometricPrecision;
