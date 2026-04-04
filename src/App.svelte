@@ -120,7 +120,7 @@
         } else {
             map.scrollZoom.enable();
             map.doubleClickZoom.enable();
-            map.touchZoomRotate.enableRotation();
+            map.touchZoomRotate.disableRotation();
             map.touchZoomRotate.enable();
             map.keyboard.enable();
         }
