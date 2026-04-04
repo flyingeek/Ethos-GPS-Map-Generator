@@ -359,6 +359,39 @@
                         toggleMeasure();
                     }
                 });
+
+                map.on("dragend", () => {
+                    if (!homePosition) return;
+                    const sp = projectLngLat(map, homePosition);
+                    if (!sp) return;
+
+                    const cx = mapWidth / 2;
+                    const cy = mapHeight / 2;
+                    const dx = cx - sp.x;
+                    const dy = cy - sp.y;
+
+                    const SNAP_THRESHOLD = 12; // Must match HomeCrosshairOverlay
+
+                    let needsEase = false;
+                    let targetScreenPoint = map.project(map.getCenter());
+
+                    if (Math.abs(dx) < SNAP_THRESHOLD) {
+                        targetScreenPoint.x -= dx;
+                        needsEase = true;
+                    }
+                    if (Math.abs(dy) < SNAP_THRESHOLD) {
+                        targetScreenPoint.y -= dy;
+                        needsEase = true;
+                    }
+
+                    if (needsEase) {
+                        map.easeTo({
+                            center: map.unproject(targetScreenPoint),
+                            duration: 200,
+                            easing: (t) => t * (2 - t),
+                        });
+                    }
+                });
             } catch (error) {
                 console.error("MapLibre initialization failed:", error);
             }
