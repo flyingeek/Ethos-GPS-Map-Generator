@@ -1070,7 +1070,7 @@
 
 <style>
     .page-shell {
-        width: min(1220px, 96vw);
+        width: 1120px;
         margin: 0 auto;
         padding: 14px 0 28px;
         display: grid;
@@ -1502,7 +1502,7 @@
     }
 
     .guide {
-        width: min(310px, 96vw);
+        width: 308px;
         display: grid;
         gap: 8px;
     }
@@ -1584,28 +1584,6 @@
         color: #a9d66c;
         font-family: "Space Mono", monospace;
         font-size: 0.82rem;
-    }
-
-    @media (max-width: 1024px) {
-        .page-shell {
-            width: 96vw;
-        }
-
-        .workspace {
-            flex-direction: column;
-        }
-
-        .map-box {
-            width: min(96vw, var(--mobile-map-width));
-            max-width: 100%;
-            height: auto;
-            aspect-ratio: 5 / 3;
-        }
-
-        .map-surface {
-            position: absolute;
-            inset: 0;
-        }
     }
 
     :global(.maplibregl-ctrl-bottom-right .maplibregl-ctrl-scale) {

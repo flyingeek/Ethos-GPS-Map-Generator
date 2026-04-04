@@ -239,10 +239,4 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
-
-    @media (max-width: 1024px) {
-        .search-field {
-            min-width: 100%;
-        }
-    }
 </style>
