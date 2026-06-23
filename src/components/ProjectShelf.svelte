@@ -121,6 +121,19 @@
                 /^#[0-9a-fA-F]{6}$/.test(projectState.f3aColor)
                     ? projectState.f3aColor
                     : "#ffffff",
+            selectedRunway:
+                projectState.selectedRunway?.start &&
+                projectState.selectedRunway?.end
+                    ? {
+                          source: projectState.selectedRunway.source,
+                          stripWidth: projectState.selectedRunway.stripWidth,
+                          start: projectState.selectedRunway.start,
+                          end: projectState.selectedRunway.end,
+                          center: projectState.selectedRunway.center,
+                          heading: projectState.selectedRunway.heading,
+                          lengthM: projectState.selectedRunway.lengthM,
+                      }
+                    : null,
         };
 
         upsertSavedProject(snapshot);
@@ -221,6 +234,18 @@
                 /^#[0-9a-fA-F]{6}$/.test(project.f3aColor)
                     ? project.f3aColor
                     : "#ffffff",
+            selectedRunway:
+                project.selectedRunway?.start && project.selectedRunway?.end
+                    ? {
+                          source: project.selectedRunway.source,
+                          stripWidth: project.selectedRunway.stripWidth,
+                          start: project.selectedRunway.start,
+                          end: project.selectedRunway.end,
+                          center: project.selectedRunway.center,
+                          heading: project.selectedRunway.heading,
+                          lengthM: project.selectedRunway.lengthM,
+                      }
+                    : null,
         };
 
         upsertSavedProject(importedSnapshot);

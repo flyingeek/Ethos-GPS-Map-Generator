@@ -1,8 +1,10 @@
 <script>
     import { onMount } from "svelte";
+    import { isIOS } from "./lib/deviceInfo.js";
     import { buildRasterStyle, MAP_TYPES } from "./mapStyles.js";
     import {
         normalizeAngle,
+        normalizeBearing,
         calculateMeasureState,
         toDms,
     } from "./lib/geoUtils.js";
@@ -14,12 +16,19 @@
         createExportArtifacts,
         downloadFile,
     } from "./lib/exportActions.js";
+    import {
+        buildRunwayFromScreen,
+        projectRunway,
+        rotateRunway,
+    } from "./lib/runwayUtils.js";
     import ProjectShelf from "./components/ProjectShelf.svelte";
     import SearchPanel from "./components/SearchPanel.svelte";
     import RotationSlider from "./components/RotationSlider.svelte";
+    import MouseWheelIcon from "./components/MouseWheelIcon.svelte";
     import F3AZoneOverlay from "./components/F3AZoneOverlay.svelte";
     import HomeCrosshairOverlay from "./components/HomeCrosshairOverlay.svelte";
     import MeasureLineOverlay from "./components/MeasureLineOverlay.svelte";
+    import RunwayOverlay from "./components/RunwayOverlay.svelte";
     import ethosLogoUrl from "../ethos logo.png";
 
     let map;
@@ -60,6 +69,13 @@
     const f3aDefaultColor = "#ffffff";
     let f3aColor = f3aDefaultColor;
     let f3aZoneGeometry = null;
+    let selectedRunway = null;
+    let projectedRunway = null;
+    let isRunwayPickActive = false;
+    let isRunwayEditActive = false;
+    let runwayPickStart = null;
+    let runwayPickStartScreen = null;
+    let runwayStatus = "Pick runway ends to define runway.";
 
     $: hudReference = homePosition ?? center;
 
@@ -114,6 +130,33 @@
     $: if (map) {
         map.setBearing(rotation);
     }
+
+    $: runwayDirs = (() => {
+        if (!selectedRunway) return null;
+        // Check if the runway is roughly horizontal on screen (within ±15° of 90°/270°)
+        const screenAngle =
+            (((selectedRunway.heading - rotation) % 360) + 360) % 360;
+        const distFrom90 = Math.min(
+            Math.abs(screenAngle - 90),
+            Math.abs(screenAngle - 270),
+        );
+        // Perpendicular headings (0–360)
+        const perp1 = (selectedRunway.heading + 90 + 360) % 360;
+        const perp2 = (selectedRunway.heading - 90 + 360) % 360;
+        // Map's up direction (0–360)
+        const mapUp = ((rotation % 360) + 360) % 360;
+        // Which perp is closer to map up?
+        const diff1 = Math.min(
+            Math.abs(perp1 - mapUp),
+            360 - Math.abs(perp1 - mapUp),
+        );
+        const upPerp = diff1 <= 90 ? perp1 : perp2;
+        const downPerp = diff1 <= 90 ? perp2 : perp1;
+        return {
+            topLabel: formatPerpLabel(upPerp),
+            bottomLabel: formatPerpLabel(downPerp),
+        };
+    })();
 
     $: if (map) {
         if (zoomLock) {
@@ -358,6 +401,13 @@
                     if (isMeasureActive) {
                         toggleMeasure();
                     }
+                    if (isRunwayPickActive) {
+                        cancelRunwayPick();
+                    }
+                });
+
+                map.on("click", (event) => {
+                    handleRunwayMapClick(event);
                 });
 
                 map.on("dragend", () => {
@@ -514,6 +564,7 @@
     function refreshProjectedOverlays() {
         updateHomeCrosshairScreenPoint();
         updateF3AZoneOverlay();
+        updateRunwayOverlay();
     }
 
     function updateF3AZoneOverlay() {
@@ -524,6 +575,144 @@
             f3aBaseDistance,
             isF3AZoneVisible,
         );
+    }
+
+    function updateRunwayOverlay() {
+        projectedRunway = projectRunway(map, selectedRunway);
+        runwayPickStartScreen = runwayPickStart
+            ? projectLngLat(map, runwayPickStart)
+            : null;
+    }
+
+    // Convert 0–360 bearing to ±180 E/W label (same convention as RotationSlider)
+    function formatPerpLabel(bearing) {
+        const val = bearing > 180 ? bearing - 360 : bearing;
+        const abs = Number(Math.abs(val).toFixed(1));
+        const dir = val > 0 ? "E" : val < 0 ? "W" : "";
+        return `${abs}°${dir}`;
+    }
+
+    function clearRunwaySelection() {
+        stopRunwayEdit();
+        selectedRunway = null;
+        runwayPickStart = null;
+        isRunwayPickActive = false;
+        runwayStatus = "Pick runway ends to define runway.";
+        updateRunwayOverlay();
+    }
+
+    function updateSelectedRunway(runway, statusMessage) {
+        selectedRunway = runway;
+        runwayStatus = statusMessage;
+        updateRunwayOverlay();
+    }
+
+    function rotateSelectedRunway(deltaDeg) {
+        if (!selectedRunway) return;
+        updateSelectedRunway(
+            rotateRunway(selectedRunway, deltaDeg),
+            `Runway axis rotated ${deltaDeg > 0 ? "+" : ""}${deltaDeg.toFixed(1)}°.`,
+        );
+    }
+
+    function toggleRunwayEdit() {
+        if (!map || !selectedRunway) return;
+        isRunwayEditActive = !isRunwayEditActive;
+        if (isRunwayEditActive) {
+            map.dragPan.disable();
+            map.scrollZoom.disable();
+            map.doubleClickZoom.disable();
+        } else {
+            map.dragPan.enable();
+            map.scrollZoom.enable();
+            map.doubleClickZoom.enable();
+        }
+    }
+
+    function stopRunwayEdit() {
+        if (!isRunwayEditActive) return;
+        isRunwayEditActive = false;
+        if (map) {
+            map.dragPan.enable();
+            map.scrollZoom.enable();
+            map.doubleClickZoom.enable();
+        }
+    }
+
+    function handleEndpointDrag(event) {
+        if (!selectedRunway || !map || !mapContainer) return;
+        const { endpoint, clientX, clientY } = event.detail;
+        const rect = mapContainer.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        const newFirst =
+            endpoint === "first" ? { x, y } : projectedRunway.firstPoint;
+        const newLast =
+            endpoint === "last" ? { x, y } : projectedRunway.lastPoint;
+        updateSelectedRunway(
+            buildRunwayFromScreen(map, newFirst, newLast, {
+                source: selectedRunway.source,
+                stripWidth: selectedRunway.stripWidth,
+            }),
+            "Runway edited.",
+        );
+    }
+
+    function handleRunwayWheel(event) {
+        if (!selectedRunway) return;
+        event.preventDefault();
+        rotateSelectedRunway(event.deltaY > 0 ? -0.1 : 0.1);
+    }
+
+    function handleRunwayHeadingWheel(event) {
+        if (!selectedRunway) return;
+        event.preventDefault();
+        event.stopPropagation();
+        rotateSelectedRunway(event.deltaY > 0 ? 0.1 : -0.1);
+    }
+
+    function startRunwayPick() {
+        if (!map) return;
+        if (isMeasureActive) {
+            stopMeasure();
+        }
+        selectedRunway = null;
+        runwayPickStart = null;
+        isRunwayPickActive = true;
+        runwayStatus = "Click one runway end, then the other.";
+        updateRunwayOverlay();
+    }
+
+    function cancelRunwayPick() {
+        isRunwayPickActive = false;
+        runwayPickStart = null;
+        runwayStatus = selectedRunway
+            ? "Runway selected."
+            : "Pick runway ends to define runway.";
+        updateRunwayOverlay();
+    }
+
+    function handleRunwayMapClick(event) {
+        if (!isRunwayPickActive || !map) return;
+
+        const clickedPoint = { x: event.point.x, y: event.point.y };
+        if (!runwayPickStart) {
+            const start = map.unproject([clickedPoint.x, clickedPoint.y]);
+            runwayPickStart = { lat: start.lat, lng: start.lng };
+            runwayStatus = "Now click the other runway end.";
+            updateRunwayOverlay();
+            return;
+        }
+
+        const startPoint = projectLngLat(map, runwayPickStart);
+        selectedRunway = buildRunwayFromScreen(map, startPoint, clickedPoint, {
+            source: "manual",
+            stripWidth: 18,
+        });
+        isRunwayPickActive = false;
+        runwayPickStart = null;
+        runwayStatus = "Manual runway picked.";
+        updateRunwayOverlay();
     }
 
     function setHomePosition() {
@@ -588,6 +777,7 @@
                     isF3AZoneVisible && f3aZoneGeometry
                         ? { geometry: f3aZoneGeometry, color: f3aColor }
                         : null,
+                selectedRunway,
             });
 
         const { default: JSZip } = await import("jszip");
@@ -672,6 +862,7 @@
                     isF3AZoneVisible && f3aZoneGeometry
                         ? { geometry: f3aZoneGeometry, color: f3aColor }
                         : null,
+                selectedRunway,
             });
 
         const bmpOk = await saveToSd(
@@ -725,6 +916,30 @@
                 : f3aDefaultColor;
         isF3AZoneVisible = Boolean(p.f3aZoneVisible) && Boolean(homePosition);
 
+        const r = p.selectedRunway;
+        if (
+            r?.start?.lat != null &&
+            r?.start?.lng != null &&
+            r?.end?.lat != null &&
+            r?.end?.lng != null
+        ) {
+            selectedRunway = {
+                source: r.source ?? "manual",
+                confidence: 1,
+                score: 1,
+                stripWidth: r.stripWidth ?? 18,
+                start: r.start,
+                end: r.end,
+                center: r.center,
+                heading: r.heading,
+                lengthM: r.lengthM,
+            };
+            runwayStatus = "Runway selected.";
+        } else {
+            selectedRunway = null;
+            runwayStatus = "Pick runway ends to define runway.";
+        }
+
         if (map) {
             map.jumpTo({
                 center: [p.center.lng, p.center.lat],
@@ -739,6 +954,14 @@
     }
 </script>
 
+<svelte:window
+    on:keydown={(e) => {
+        if (e.key === "Escape") {
+            if (isRunwayEditActive) stopRunwayEdit();
+            if (isRunwayPickActive) cancelRunwayPick();
+        }
+    }}
+/>
 <svelte:head>
     <title>Ethos GPS Map Generator - Svelte</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -777,6 +1000,17 @@
                 f3aRotation,
                 f3aBaseDistance,
                 f3aColor,
+                selectedRunway: selectedRunway
+                    ? {
+                          source: selectedRunway.source,
+                          stripWidth: selectedRunway.stripWidth,
+                          start: selectedRunway.start,
+                          end: selectedRunway.end,
+                          center: selectedRunway.center,
+                          heading: selectedRunway.heading,
+                          lengthM: selectedRunway.lengthM,
+                      }
+                    : null,
             }}
             on:loadproject={handleLoadProject}
         />
@@ -963,11 +1197,19 @@
             <div
                 class="map-box"
                 class:measure-mode={isMeasureActive}
+                class:runway-pick-mode={isRunwayPickActive}
                 bind:this={mapViewport}
                 style={`width:${mapWidth}px;height:${mapHeight}px;`}
             >
                 <div class="map-surface" bind:this={mapContainer}></div>
                 <F3AZoneOverlay geometry={f3aZoneGeometry} color={f3aColor} />
+                <RunwayOverlay
+                    runway={projectedRunway}
+                    pendingPoint={runwayPickStartScreen}
+                    isPicking={isRunwayPickActive}
+                    isEditing={isRunwayEditActive}
+                    on:endpointdrag={handleEndpointDrag}
+                />
                 {#if homeScreenPoint}
                     <HomeCrosshairOverlay
                         screenPoint={homeScreenPoint}
@@ -1016,12 +1258,21 @@
         </div>
 
         <aside class="panel guide">
-            <section class="home-panel" class:with-f3a={homePosition}>
+            <section class="home-panel">
                 <h2>Reference Position</h2>
-                <p>
-                    Lock the crosshair to the current center and keep it pinned
-                    while moving the map.
-                </p>
+                {#if homePosition}
+                    <p class="home-coords">
+                        🔒 {toDms(homePosition.lat, true)}, {toDms(
+                            homePosition.lng,
+                            false,
+                        )}
+                    </p>
+                {:else}
+                    <p>
+                        Lock the crosshair to the current center and keep it
+                        pinned while moving the map.
+                    </p>
+                {/if}
                 <div class="home-actions">
                     {#if homePosition}
                         <button class="warn" on:click={clearHomePosition}
@@ -1033,21 +1284,98 @@
                         >
                     {/if}
                 </div>
-                <p class="home-coords">
-                    {#if homePosition}
-                        🔒 {toDms(homePosition.lat, true)}, {toDms(
-                            homePosition.lng,
-                            false,
-                        )}
+            </section>
+
+            <section
+                class="runway-panel"
+                on:wheel={handleRunwayWheel}
+                class:with-f3a={homePosition}
+            >
+                <div class="runway-title-row">
+                    <h2>Runway</h2>
+                    {#if selectedRunway}
+                        <button
+                            class="runway-edit-btn"
+                            class:active={isRunwayEditActive}
+                            on:click={toggleRunwayEdit}>Edit</button
+                        >
+                    {/if}
+                </div>
+                <p class="runway-status">
+                    {#if !selectedRunway}
+                        {runwayStatus}
+                    {:else if $isIOS}
+                        <button
+                            type="button"
+                            class="ghost runway-step-btn runway-step-btn-left"
+                            on:click={() => rotateSelectedRunway(-0.1)}
+                        >
+                            ⟲ 0.1°
+                        </button>
+                        <span
+                            class="runway-bearing"
+                            on:wheel={handleRunwayHeadingWheel}
+                            >RWY {normalizeBearing(
+                                selectedRunway.heading,
+                            ).toFixed(1)}°
+                            <MouseWheelIcon size={18} /></span
+                        >
+                        <button
+                            type="button"
+                            class="ghost runway-step-btn runway-step-btn-right"
+                            on:click={() => rotateSelectedRunway(0.1)}
+                        >
+                            0.1° ⟳
+                        </button>
                     {:else}
-                        Not set
+                        <span
+                            class="runway-bearing"
+                            on:wheel={handleRunwayHeadingWheel}
+                            >RWY {normalizeBearing(
+                                selectedRunway.heading,
+                            ).toFixed(1)}°
+                            <MouseWheelIcon size={18} /></span
+                        >
                     {/if}
                 </p>
+                <div class="home-actions runway-actions">
+                    <button
+                        class={isRunwayPickActive || selectedRunway
+                            ? "warn"
+                            : "ghost"}
+                        on:click={isRunwayPickActive
+                            ? cancelRunwayPick
+                            : selectedRunway
+                              ? clearRunwaySelection
+                              : startRunwayPick}
+                        disabled={!map}
+                        >{isRunwayPickActive
+                            ? "Cancel Pick"
+                            : selectedRunway
+                              ? "Remove runway"
+                              : "Pick Ends"}</button
+                    >
+                </div>
             </section>
 
             {#if homePosition}
                 <section class="f3a-panel">
-                    <h2>F3A Zone</h2>
+                    <div class="f3a-title-row">
+                        <h2>F3A Zone</h2>
+                        {#if runwayDirs}
+                            <span class="runway-perp-indicator">
+                                <span class="rpi-sym">⊥</span>
+                                <span class="rpi-val"
+                                    >{runwayDirs.topLabel}</span
+                                >
+                                <span class="rpi-line"></span>
+                                <span class="rpi-sym">⊤</span>
+                                <span class="rpi-val"
+                                    >{runwayDirs.bottomLabel}</span
+                                >
+                            </span>
+                        {/if}
+                    </div>
                     <p>
                         Draw a 120° triangle from the reference position with
                         the base centered {Math.max(
@@ -1417,6 +1745,12 @@
         flex-shrink: 0;
     }
 
+    .map-box.runway-pick-mode,
+    :global(.map-box.runway-pick-mode .maplibregl-canvas-container),
+    :global(.map-box.runway-pick-mode .maplibregl-canvas) {
+        cursor: crosshair !important;
+    }
+
     .map-surface {
         width: 100%;
         height: 100%;
@@ -1563,10 +1897,132 @@
         display: grid;
         gap: 8px;
         padding-bottom: 8px;
+        border-bottom: 1px solid #2e434a;
     }
 
-    .home-panel.with-f3a {
+    .runway-panel {
+        display: grid;
+        gap: 8px;
+        padding-bottom: 8px;
+    }
+
+    .runway-panel.with-f3a {
         border-bottom: 1px solid #2e434a;
+    }
+    .runway-title-row,
+    .f3a-title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .runway-title-row h2,
+    .f3a-title-row h2 {
+        margin: 0;
+    }
+
+    .runway-status {
+        color: #cad4d9;
+        font-size: 0.86rem;
+        min-height: 24px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .runway-bearing {
+        min-width: 52px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 2px;
+        font-family: "Space Mono", monospace;
+        color: #9de44d;
+        cursor: ns-resize;
+        user-select: none;
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+    }
+
+    .runway-bearing :global(svg) {
+        width: 18px;
+        height: 18px;
+        flex: 0 0 18px;
+        opacity: 0.75;
+        user-select: none;
+        filter: drop-shadow(0 0 4px rgba(157, 228, 77, 0.35));
+    }
+
+    .runway-step-btn {
+        min-height: 32px;
+        padding: 4px 8px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        user-select: none;
+    }
+
+    .runway-edit-btn {
+        color: #b8f971;
+        background: rgba(4, 8, 10, 0.8);
+        border: 2px solid #8acf35;
+        border-radius: 7px;
+        font-family: "Space Mono", monospace;
+        font-weight: 700;
+        font-size: 0.74rem;
+        padding: 3px 9px;
+        min-height: unset;
+        cursor: pointer;
+    }
+
+    .runway-edit-btn.active {
+        background: linear-gradient(135deg, #7fb729, #4a8f26);
+        border-color: #90db35;
+        color: #092409;
+    }
+
+    .runway-perp-indicator {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        column-gap: 4px;
+        row-gap: 2px;
+        flex-shrink: 0;
+        font-family: "Space Mono", monospace;
+        font-size: 0.6rem;
+        color: #9de44d;
+        line-height: 1;
+    }
+
+    .rpi-sym {
+        opacity: 0.7;
+        font-size: 0.65rem;
+        text-align: left;
+    }
+
+    .rpi-val {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .rpi-line {
+        grid-column: 1 / -1;
+        height: 1px;
+        border-top: 1px dashed rgba(157, 228, 77, 0.6);
+    }
+
+    .runway-actions {
+        align-items: center;
+    }
+
+    .mini-btn {
+        min-height: 32px;
+        padding: 5px 8px;
+        font-size: 0.78rem;
     }
 
     .f3a-panel {
@@ -1624,6 +2080,7 @@
         color: #a9d66c;
         font-family: "Space Mono", monospace;
         font-size: 0.82rem;
+        padding-bottom: 2px;
     }
 
     :global(.maplibregl-ctrl-bottom-right .maplibregl-ctrl-scale) {

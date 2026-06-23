@@ -1,7 +1,7 @@
 <script>
-    import { onMount } from "svelte";
     import { normalizeAngle } from "../lib/geoUtils.js";
     import MouseWheelIcon from "./MouseWheelIcon.svelte";
+    import { isIOS } from "../lib/deviceInfo.js";
 
     export let value = 0;
     export let label = "Rotation";
@@ -18,21 +18,12 @@
     export let forceStepButtonsOnTouch = false;
     export let twoLineSteps = false;
 
-    let isIOS = false;
     let effectiveStepSize = stepSize;
     let effectiveShowStepButtons = showStepButtons;
 
-    $: effectiveStepSize = isIOS ? 0.1 : stepSize;
+    $: effectiveStepSize = $isIOS ? 0.1 : stepSize;
     $: effectiveShowStepButtons =
-        showStepButtons || (forceStepButtonsOnTouch && isIOS);
-
-    onMount(() => {
-        const ua = navigator.userAgent || "";
-        const isiOSDevice = /iPad|iPhone|iPod/i.test(ua);
-        const isIPadOSDesktopUA =
-            navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
-        isIOS = isiOSDevice || isIPadOSDesktopUA;
-    });
+        showStepButtons || (forceStepButtonsOnTouch && $isIOS);
 
     function handleStep(delta) {
         if (onStepClick) {
@@ -66,7 +57,7 @@
     let autoRepeatActive = false;
 
     function startAutoRepeat(delta) {
-        if (!isIOS) return;
+        if (!$isIOS) return;
         autoRepeatActive = false;
         autoRepeatTimer = setTimeout(() => {
             autoRepeatActive = true;

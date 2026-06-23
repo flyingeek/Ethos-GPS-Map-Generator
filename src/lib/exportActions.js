@@ -30,6 +30,7 @@ export async function createExportArtifacts({
     f3aBaseDistance,
     f3aColor,
     f3aOverlay,
+    selectedRunway,
 }) {
     const bmpBlob = await createBmpBlob(map, mapViewport, mapWidth, mapHeight, 16, f3aOverlay ?? null);
     const jsonBlob = createJsonBlob({ map, bounds, rotation });
@@ -48,6 +49,7 @@ export async function createExportArtifacts({
         f3aRotation,
         f3aBaseDistance,
         f3aColor,
+        selectedRunway,
     });
     const metaBlob = createMetadataBlob({
         map,
