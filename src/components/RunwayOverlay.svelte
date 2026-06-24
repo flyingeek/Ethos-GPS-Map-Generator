@@ -1,7 +1,4 @@
 <script>
-    import { run } from 'svelte/legacy';
-
-    import { createEventDispatcher } from "svelte";
     import OverlaySvg from "./OverlaySvg.svelte";
     import { normalizeBearing } from "../lib/geoUtils.js";
 
@@ -11,6 +8,8 @@
      * @property {any} [pendingPoint]
      * @property {boolean} [isPicking]
      * @property {boolean} [isEditing]
+     * @property {((detail: {endpoint: string, clientX: number, clientY: number}) => void) | null} [onendpointdrag]
+     * @property {(() => void) | null} [onendpointdragend]
      */
 
     /** @type {Props} */
@@ -18,70 +17,41 @@
         runway = null,
         pendingPoint = null,
         isPicking = false,
-        isEditing = false
+        isEditing = false,
+        onendpointdrag = null,
+        onendpointdragend = null,
     } = $props();
 
-    const dispatch = createEventDispatcher();
-
-    let hasRunway = $state(false);
-    let width = $state(18);
-    let dx = $state(0);
-    let dy = $state(0);
-    let length = $state(1);
-    let nx = $state(0);
-    let ny = $state(0);
-    let halfWidth = $state(9);
-    let polygon = $state("");
-    let labelX = $state(0);
-    let labelY = $state(0);
-    let label = $state("");
-    let dragging = $state(null); // 'first' | 'last' | null
-
-    run(() => {
-        hasRunway = Boolean(runway?.firstPoint && runway?.lastPoint);
-    });
-    run(() => {
-        width = Math.max(10, Math.min(32, runway?.stripWidth ?? 18));
-    });
-    run(() => {
-        dx = hasRunway ? runway.lastPoint.x - runway.firstPoint.x : 0;
-    });
-    run(() => {
-        dy = hasRunway ? runway.lastPoint.y - runway.firstPoint.y : 0;
-    });
-    run(() => {
-        length = Math.hypot(dx, dy) || 1;
-    });
-    run(() => {
-        nx = -dy / length;
-    });
-    run(() => {
-        ny = dx / length;
-    });
-    run(() => {
-        halfWidth = width / 2;
-    });
-    run(() => {
-        polygon = hasRunway
+    let hasRunway = $derived(Boolean(runway?.firstPoint && runway?.lastPoint));
+    let width = $derived(Math.max(10, Math.min(32, runway?.stripWidth ?? 18)));
+    let dx = $derived(hasRunway ? runway.lastPoint.x - runway.firstPoint.x : 0);
+    let dy = $derived(hasRunway ? runway.lastPoint.y - runway.firstPoint.y : 0);
+    let length = $derived(Math.hypot(dx, dy) || 1);
+    let nx = $derived(-dy / length);
+    let ny = $derived(dx / length);
+    let halfWidth = $derived(width / 2);
+    let polygon = $derived(
+        hasRunway
             ? [
                   `${runway.firstPoint.x + nx * halfWidth},${runway.firstPoint.y + ny * halfWidth}`,
                   `${runway.lastPoint.x + nx * halfWidth},${runway.lastPoint.y + ny * halfWidth}`,
                   `${runway.lastPoint.x - nx * halfWidth},${runway.lastPoint.y - ny * halfWidth}`,
                   `${runway.firstPoint.x - nx * halfWidth},${runway.firstPoint.y - ny * halfWidth}`,
               ].join(" ")
-            : "";
-    });
-    run(() => {
-        labelX = hasRunway ? runway.centerPoint.x + nx * (halfWidth + 12) : 0;
-    });
-    run(() => {
-        labelY = hasRunway ? runway.centerPoint.y + ny * (halfWidth + 12) : 0;
-    });
-    run(() => {
-        label = hasRunway
+            : "",
+    );
+    let labelX = $derived(
+        hasRunway ? runway.centerPoint.x + nx * (halfWidth + 12) : 0,
+    );
+    let labelY = $derived(
+        hasRunway ? runway.centerPoint.y + ny * (halfWidth + 12) : 0,
+    );
+    let label = $derived(
+        hasRunway
             ? `${normalizeBearing(runway.heading).toFixed(1)}° / ${runway.lengthM.toFixed(0)}m`
-            : "";
-    });
+            : "",
+    );
+    let dragging = $state(null); // 'first' | 'last' | null
 
     function onPointerDown(e, endpoint) {
         e.preventDefault();
@@ -91,7 +61,7 @@
 
     function onPointerMove(e) {
         if (!dragging) return;
-        dispatch("endpointdrag", {
+        onendpointdrag?.({
             endpoint: dragging,
             clientX: e.clientX,
             clientY: e.clientY,
@@ -101,7 +71,7 @@
     function onPointerUp(e) {
         if (!dragging) return;
         dragging = null;
-        dispatch("endpointdragend");
+        onendpointdragend?.();
     }
 </script>
 

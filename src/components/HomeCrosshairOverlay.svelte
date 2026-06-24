@@ -1,6 +1,4 @@
 <script>
-    import { run } from 'svelte/legacy';
-
     import OverlaySvg from "./OverlaySvg.svelte";
 
     /**
@@ -15,18 +13,20 @@
 
     const SNAP_THRESHOLD = 12;
 
-    let snapV =
-        $derived(screenPoint && Math.abs(screenPoint.x - mapWidth / 2) < SNAP_THRESHOLD);
-    let snapH =
-        $derived(screenPoint && Math.abs(screenPoint.y - mapHeight / 2) < SNAP_THRESHOLD);
+    let snapV = $derived(
+        screenPoint && Math.abs(screenPoint.x - mapWidth / 2) < SNAP_THRESHOLD,
+    );
+    let snapH = $derived(
+        screenPoint && Math.abs(screenPoint.y - mapHeight / 2) < SNAP_THRESHOLD,
+    );
 
     let rx = $derived(snapV ? mapWidth / 2 : screenPoint?.x);
     let ry = $derived(snapH ? mapHeight / 2 : screenPoint?.y);
 
-    let effectTimeout = $state();
+    let effectTimeout;
     let showSnapEffect = $state(false);
 
-    run(() => {
+    $effect(() => {
         // Depend on screenPoint directly to reset timeout continuously while moving inside the zone
         const _trigger = screenPoint;
         const isSnapped = snapV || snapH;
@@ -41,6 +41,8 @@
             showSnapEffect = false;
             clearTimeout(effectTimeout);
         }
+
+        return () => clearTimeout(effectTimeout);
     });
 </script>
 

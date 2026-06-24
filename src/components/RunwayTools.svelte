@@ -1,22 +1,21 @@
 <script>
-    import { createEventDispatcher, getContext } from "svelte";
+    import { getContext } from "svelte";
     import { normalizeBearing } from "../lib/geoUtils.js";
     import MouseWheelIcon from "./MouseWheelIcon.svelte";
 
     const state = getContext("app");
 
-    
     /**
      * @typedef {Object} Props
      * @property {boolean} [isIOS] - isIOS and mapReady still come from App (no map/device context in state)
      * @property {boolean} [mapReady]
+     * @property {(() => void) | null} [onstartpick]
      */
 
     /** @type {Props} */
-    let { isIOS = false, mapReady = false } = $props();
+    let { isIOS = false, mapReady = false, onstartpick = null } = $props();
 
     // startpick still needs App.svelte (must stop measure tool first)
-    const dispatch = createEventDispatcher();
 
     function handleWheel(event) {
         if (!state.selectedRunway) return;
@@ -91,7 +90,7 @@
                     ? state.cancelRunwayPick()
                     : state.selectedRunway
                       ? state.clearRunwaySelection()
-                      : dispatch("startpick")}
+                      : onstartpick?.()}
             >{state.isRunwayPickActive
                 ? "Cancel Pick"
                 : state.selectedRunway

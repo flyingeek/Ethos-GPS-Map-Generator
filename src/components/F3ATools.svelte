@@ -1,15 +1,14 @@
-<!-- @migration-task Error while migrating Svelte code: can't migrate `const state = getContext("app");` to `$state` because there's a variable named state.
-     Rename the variable and try again or migrate by hand. -->
 <script>
-    import { createEventDispatcher, getContext } from "svelte";
+    import { getContext } from "svelte";
     import { toDms } from "../lib/geoUtils.js";
     import RotationSlider from "./RotationSlider.svelte";
 
     const state = getContext("app");
     const f3aDefaultColor = "#ffffff";
 
+    let { onsethome = null } = $props();
+
     // sethome still needs App.svelte (requires map.getCenter)
-    const dispatch = createEventDispatcher();
 
     function handleToggleF3A() {
         if (!state.isF3AZoneVisible) {
@@ -41,11 +40,11 @@
     {/if}
     <div class="home-actions">
         {#if state.homePosition}
-            <button class="warn" on:click={() => state.clearHomePosition()}
+            <button class="warn" onclick={() => state.clearHomePosition()}
                 >Clear Reference</button
             >
         {:else}
-            <button class="ok" on:click={() => dispatch("sethome")}
+            <button class="ok" onclick={() => onsethome?.()}
                 >Set Reference Position</button
             >
         {/if}
@@ -75,7 +74,7 @@
         <div class="home-actions">
             <button
                 class={state.isF3AZoneVisible ? "warn" : "ok"}
-                on:click={handleToggleF3A}
+                onclick={handleToggleF3A}
                 >{state.isF3AZoneVisible ? "Remove Zone" : "Show Zone"}</button
             >
         </div>
@@ -109,7 +108,7 @@
                     {#if state.f3aColor !== f3aDefaultColor}
                         <button
                             class="reset-color"
-                            on:click={() => (state.f3aColor = f3aDefaultColor)}
+                            onclick={() => (state.f3aColor = f3aDefaultColor)}
                             >reset</button
                         >
                     {/if}

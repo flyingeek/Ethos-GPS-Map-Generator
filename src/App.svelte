@@ -1,5 +1,3 @@
-<!-- @migration-task Error while migrating Svelte code: can't migrate `const state = new AppState();` to `$state` because there's a variable named state.
-     Rename the variable and try again or migrate by hand. -->
 <script>
     import { onMount, setContext } from "svelte";
     import { isIOS } from "./lib/deviceInfo.js";
@@ -414,10 +412,8 @@
         refreshProjectedOverlays();
     }
 
-    function handleEndpointDrag(event) {
+    function handleEndpointDrag({ endpoint, clientX, clientY }) {
         if (!state.selectedRunway || !map || !mapContainer) return;
-        const { endpoint, clientX, clientY } = event.detail;
-        const rect = mapContainer.getBoundingClientRect();
         const x = clientX - rect.left;
         const y = clientY - rect.top;
         const newFirst =
@@ -459,8 +455,8 @@
         refreshProjectedOverlays();
     }
 
-    function handleLoadProject(event) {
-        const p = event.detail?.project;
+    function handleLoadProject({ project }) {
+        const p = project;
         if (!p) return;
 
         state.loadProject(p);
@@ -511,7 +507,7 @@
 
         <ProjectShelf
             projectState={state.toSnapshot(center, zoom, bounds)}
-            on:loadproject={handleLoadProject}
+            onloadproject={handleLoadProject}
         />
     </header>
 
@@ -654,7 +650,7 @@
                     pendingPoint={runwayPickStartScreen}
                     isPicking={state.isRunwayPickActive}
                     isEditing={state.isRunwayEditActive}
-                    on:endpointdrag={handleEndpointDrag}
+                    onendpointdrag={handleEndpointDrag}
                 />
                 {#if homeScreenPoint}
                     <HomeCrosshairOverlay
@@ -706,8 +702,8 @@
         <ToolsSidebar
             isIOS={$isIOS}
             mapReady={!!map}
-            on:sethome={setHomePosition}
-            on:startpick={startRunwayPick}
+            onsethome={setHomePosition}
+            onstartpick={startRunwayPick}
         />
     </section>
 </div>

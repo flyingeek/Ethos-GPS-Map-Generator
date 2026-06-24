@@ -1,10 +1,8 @@
 <script>
-    import { createEventDispatcher, onMount } from "svelte";
+    import { onMount } from "svelte";
     import { parseLuaProject } from "../lib/exportBlobs.js";
 
-    let { projectState } = $props();
-
-    const dispatch = createEventDispatcher();
+    let { projectState, onloadproject = null } = $props();
     const MAX_SAVED_PROJECTS = 10;
 
     let savedProjects = $state([]);
@@ -154,7 +152,7 @@
     function loadSelectedProject() {
         const project = savedProjects[selectedSaveIndex];
         if (!project) return;
-        dispatch("loadproject", { project });
+        onloadproject?.({ project });
     }
 
     function deleteSavedProject() {
@@ -252,7 +250,7 @@
         persistProjects();
         pulseSelector();
 
-        dispatch("loadproject", { project });
+        onloadproject?.({ project });
         saveNotice = `Imported & saved: ${importedName}`;
         if (saveNoticeTimer) clearTimeout(saveNoticeTimer);
         saveNoticeTimer = setTimeout(() => {
