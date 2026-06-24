@@ -22,79 +22,77 @@
     import ethosLogoUrl from "../ethos logo.png";
     import { ensureMapLibreApi } from "./lib/mapLoader.js";
 
-    const state = new AppState();
-    setContext("app", state);
+    const appState = new AppState();
+    setContext("app", appState);
 
-    let map;
-    let mapContainer;
-    let mapViewport;
-    let maplibreglApi = null;
+    let map = $state(null);
+    let mapContainer = $state(null);
+    let mapViewport = $state(null);
+    let maplibreglApi = $state(null);
 
     // Map-derived state (owned by map events)
-    let bounds = { north: 0, south: 0, west: 0, east: 0 };
-    let center = { lat: 44.71607983566827, lng: -0.7165001920591294 };
-    let zoom = 14.7;
+    let bounds = $state({ north: 0, south: 0, west: 0, east: 0 });
+    let center = $state({ lat: 44.71607983566827, lng: -0.7165001920591294 });
+    let zoom = $state(14.7);
 
     // Projected screen coordinates
-    let homeScreenPoint = null;
-    let f3aZoneGeometry = null;
-    let projectedRunway = null;
-    let runwayPickStartScreen = null;
+    let homeScreenPoint = $state(null);
+    let f3aZoneGeometry = $state(null);
+    let projectedRunway = $state(null);
+    let runwayPickStartScreen = $state(null);
 
     // Measure tool (ephemeral, needs map)
-    let isMeasureActive = false;
-    let measureStart = null;
-    let measureTarget = null;
-    let measureCursorPoint = null;
-    let measureTargetScreen = null;
-    let measureDistanceM = 0;
-    let measureBearing = 0;
-    let measureRelativeAngle = 0;
+    let isMeasureActive = $state(false);
+    let measureStart = $state(null);
+    let measureTarget = $state(null);
+    let measureCursorPoint = $state(null);
+    let measureTargetScreen = $state(null);
+    let measureDistanceM = $state(0);
+    let measureBearing = $state(0);
+    let measureRelativeAngle = $state(0);
 
-    $: hudReference = state.homePosition ?? center;
+    let hudReference = $derived(appState.homePosition ?? center);
 
     // Sync viewport element size when map dimensions change
-    $: if (mapViewport) {
-        mapViewport.style.width = `${state.mapWidth}px`;
-        mapViewport.style.height = `${state.mapHeight}px`;
+    $effect(() => {
+        if (!mapViewport) return;
+        mapViewport.style.width = `${appState.mapWidth}px`;
+        mapViewport.style.height = `${appState.mapHeight}px`;
         if (map) {
             queueMicrotask(() => {
                 map.resize();
                 refreshProjectedOverlays();
             });
         }
-    }
+    });
 
     // Sync map tile style when mapType changes
-    $: if (map) {
+    $effect(() => {
+        if (!map) return;
         const savedMapState = {
             center: map.getCenter(),
             zoom: map.getZoom(),
             bearing: map.getBearing(),
             pitch: map.getPitch(),
         };
-        map.setStyle(buildRasterStyle(state.mapType));
+        map.setStyle(buildRasterStyle(appState.mapType));
         map.once("styledata", () => {
             map.jumpTo(savedMapState);
             refreshBounds();
             refreshProjectedOverlays();
         });
-    }
-
-    // One-time setup: disable rotate/pitch gestures
-    $: if (map) {
-        map.dragRotate.disable();
-        map.touchPitch.disable();
-    }
+    });
 
     // Sync bearing from state.rotation → map
-    $: if (map) {
-        map.setBearing(state.rotation);
-    }
+    $effect(() => {
+        if (!map) return;
+        map.setBearing(appState.rotation);
+    });
 
     // Sync zoom lock → map interaction handlers
-    $: if (map) {
-        if (state.zoomLock) {
+    $effect(() => {
+        if (!map) return;
+        if (appState.zoomLock) {
             map.scrollZoom.disable();
             map.doubleClickZoom.disable();
             map.touchZoomRotate.disableRotation();
@@ -107,11 +105,12 @@
             map.touchZoomRotate.enable();
             map.keyboard.enable();
         }
-    }
+    });
 
     // Sync runway edit mode → map pan/zoom interactions
-    $: if (map) {
-        if (state.isRunwayEditActive) {
+    $effect(() => {
+        if (!map) return;
+        if (appState.isRunwayEditActive) {
             map.dragPan.disable();
             map.scrollZoom.disable();
             map.doubleClickZoom.disable();
@@ -120,20 +119,15 @@
             map.scrollZoom.enable();
             map.doubleClickZoom.enable();
         }
-    }
+    });
 
     // Refresh projected overlays when overlay-relevant state changes
-    $: if (map) {
-        state.homePosition;
-        state.isF3AZoneVisible;
-        state.f3aRotation;
-        state.f3aBaseDistance;
-        state.selectedRunway;
-        state.runwayPickStart;
+    $effect(() => {
+        if (!map) return;
         refreshProjectedOverlays();
         // Stop measure tool if home position was cleared
-        if (!state.homePosition && isMeasureActive) stopMeasure();
-    }
+        if (!appState.homePosition && isMeasureActive) stopMeasure();
+    });
 
     onMount(() => {
         let cancelled = false;
@@ -145,15 +139,18 @@
 
                 map = new maplibreglApi.Map({
                     container: mapContainer,
-                    style: buildRasterStyle(state.mapType),
+                    style: buildRasterStyle(appState.mapType),
                     center: [center.lng, center.lat],
                     zoom,
-                    bearing: state.rotation,
+                    bearing: appState.rotation,
                     preserveDrawingBuffer: true,
                     attributionControl: false,
                     maxZoom: 21.9,
                 });
 
+                // One-time setup: disable rotate/pitch gestures
+                map.dragRotate.disable();
+                map.touchPitch.disable();
                 map.addControl(
                     new maplibreglApi.NavigationControl({
                         showCompass: true,
@@ -209,8 +206,8 @@
 
                 map.on("rotate", () => {
                     const newBearing = Number(map.getBearing().toFixed(1));
-                    if (Math.abs(newBearing - state.rotation) < 360) {
-                        state.rotation = newBearing;
+                    if (Math.abs(newBearing - appState.rotation) < 360) {
+                        appState.rotation = newBearing;
                     }
                     refreshProjectedOverlays();
                     if (isMeasureActive) {
@@ -250,7 +247,8 @@
 
                 map.on("contextmenu", () => {
                     if (isMeasureActive) toggleMeasure();
-                    if (state.isRunwayPickActive) state.cancelRunwayPick();
+                    if (appState.isRunwayPickActive)
+                        appState.cancelRunwayPick();
                 });
 
                 map.on("click", (event) => {
@@ -258,12 +256,12 @@
                 });
 
                 map.on("dragend", () => {
-                    if (!state.homePosition) return;
-                    const sp = projectLngLat(map, state.homePosition);
+                    if (!appState.homePosition) return;
+                    const sp = projectLngLat(map, appState.homePosition);
                     if (!sp) return;
 
-                    const cx = state.mapWidth / 2;
-                    const cy = state.mapHeight / 2;
+                    const cx = appState.mapWidth / 2;
+                    const cy = appState.mapHeight / 2;
                     const dx = cx - sp.x;
                     const dy = cy - sp.y;
                     const SNAP_THRESHOLD = 12;
@@ -320,12 +318,12 @@
     }
 
     function rotateStep(step) {
-        state.rotation = normalizeAngle(state.rotation + step);
-        if (map) map.easeTo({ bearing: state.rotation, duration: 250 });
+        appState.rotation = normalizeAngle(appState.rotation + step);
+        if (map) map.easeTo({ bearing: appState.rotation, duration: 250 });
     }
 
     function resetRotation() {
-        state.rotation = 0;
+        appState.rotation = 0;
         if (map) map.easeTo({ bearing: 0, duration: 260 });
     }
 
@@ -333,7 +331,7 @@
         if (!map) return;
         if (!isMeasureActive) {
             isMeasureActive = true;
-            measureStart = state.homePosition ?? map.getCenter();
+            measureStart = appState.homePosition ?? map.getCenter();
             measureTarget = null;
             measureCursorPoint = null;
             measureTargetScreen = null;
@@ -359,7 +357,7 @@
 
     function updateMeasureLine() {
         if (!map) return;
-        const reference = state.homePosition ?? map.getCenter();
+        const reference = appState.homePosition ?? map.getCenter();
         const target = measureTarget;
         if (!target) {
             measureDistanceM = 0;
@@ -371,7 +369,7 @@
         const measureState = calculateMeasureState(
             reference,
             target,
-            state.rotation,
+            appState.rotation,
         );
         measureDistanceM = measureState.distanceM;
         measureBearing = measureState.bearing;
@@ -380,27 +378,27 @@
     }
 
     function refreshProjectedOverlays() {
-        homeScreenPoint = projectLngLat(map, state.homePosition);
+        homeScreenPoint = projectLngLat(map, appState.homePosition);
         f3aZoneGeometry = projectF3AZoneGeometry(
             map,
-            state.homePosition,
-            state.f3aRotation,
-            state.f3aBaseDistance,
-            state.isF3AZoneVisible,
+            appState.homePosition,
+            appState.f3aRotation,
+            appState.f3aBaseDistance,
+            appState.isF3AZoneVisible,
         );
-        projectedRunway = projectRunway(map, state.selectedRunway);
-        runwayPickStartScreen = state.runwayPickStart
-            ? projectLngLat(map, state.runwayPickStart)
+        projectedRunway = projectRunway(map, appState.selectedRunway);
+        runwayPickStartScreen = appState.runwayPickStart
+            ? projectLngLat(map, appState.runwayPickStart)
             : null;
     }
 
     function setHomePosition() {
         if (!map) return;
         const c = map.getCenter();
-        state.setHomePosition(c.lat, c.lng);
+        appState.setHomePosition(c.lat, c.lng);
         refreshProjectedOverlays();
         if (isMeasureActive) {
-            measureStart = state.homePosition;
+            measureStart = appState.homePosition;
             updateMeasureLine();
         }
     }
@@ -408,22 +406,23 @@
     function startRunwayPick() {
         if (!map) return;
         if (isMeasureActive) stopMeasure();
-        state.startRunwayPick();
+        appState.startRunwayPick();
         refreshProjectedOverlays();
     }
 
     function handleEndpointDrag({ endpoint, clientX, clientY }) {
-        if (!state.selectedRunway || !map || !mapContainer) return;
+        if (!appState.selectedRunway || !map || !mapContainer) return;
+        const rect = mapContainer.getBoundingClientRect();
         const x = clientX - rect.left;
         const y = clientY - rect.top;
         const newFirst =
             endpoint === "first" ? { x, y } : projectedRunway.firstPoint;
         const newLast =
             endpoint === "last" ? { x, y } : projectedRunway.lastPoint;
-        state.updateSelectedRunway(
+        appState.updateSelectedRunway(
             buildRunwayFromScreen(map, newFirst, newLast, {
-                source: state.selectedRunway.source,
-                stripWidth: state.selectedRunway.stripWidth,
+                source: appState.selectedRunway.source,
+                stripWidth: appState.selectedRunway.stripWidth,
             }),
             "Runway edited.",
         );
@@ -431,27 +430,27 @@
     }
 
     function handleRunwayMapClick(event) {
-        if (!state.isRunwayPickActive || !map) return;
+        if (!appState.isRunwayPickActive || !map) return;
 
         const clickedPoint = { x: event.point.x, y: event.point.y };
-        if (!state.runwayPickStart) {
+        if (!appState.runwayPickStart) {
             const start = map.unproject([clickedPoint.x, clickedPoint.y]);
-            state.runwayPickStart = { lat: start.lat, lng: start.lng };
-            state.runwayStatus = "Now click the other runway end.";
+            appState.runwayPickStart = { lat: start.lat, lng: start.lng };
+            appState.runwayStatus = "Now click the other runway end.";
             refreshProjectedOverlays();
             return;
         }
 
-        const startPoint = projectLngLat(map, state.runwayPickStart);
-        state.updateSelectedRunway(
+        const startPoint = projectLngLat(map, appState.runwayPickStart);
+        appState.updateSelectedRunway(
             buildRunwayFromScreen(map, startPoint, clickedPoint, {
                 source: "manual",
                 stripWidth: 18,
             }),
             "Manual runway picked.",
         );
-        state.isRunwayPickActive = false;
-        state.runwayPickStart = null;
+        appState.isRunwayPickActive = false;
+        appState.runwayPickStart = null;
         refreshProjectedOverlays();
     }
 
@@ -459,7 +458,7 @@
         const p = project;
         if (!p) return;
 
-        state.loadProject(p);
+        appState.loadProject(p);
 
         if (map) {
             map.jumpTo({
@@ -476,10 +475,10 @@
 </script>
 
 <svelte:window
-    on:keydown={(e) => {
+    onkeydown={(e) => {
         if (e.key === "Escape") {
-            if (state.isRunwayEditActive) state.stopRunwayEdit();
-            if (state.isRunwayPickActive) state.cancelRunwayPick();
+            if (appState.isRunwayEditActive) appState.stopRunwayEdit();
+            if (appState.isRunwayPickActive) appState.cancelRunwayPick();
         }
     }}
 />
@@ -506,7 +505,7 @@
         </div>
 
         <ProjectShelf
-            projectState={state.toSnapshot(center, zoom, bounds)}
+            projectState={appState.toSnapshot(center, zoom, bounds)}
             onloadproject={handleLoadProject}
         />
     </header>
@@ -515,12 +514,16 @@
         <div class="row">
             <label class="field">
                 <span>Project Title</span>
-                <input type="text" bind:value={state.mapTitle} maxlength="11" />
+                <input
+                    type="text"
+                    bind:value={appState.mapTitle}
+                    maxlength="11"
+                />
             </label>
 
             <label class="field">
                 <span>Resolution</span>
-                <select bind:value={state.resolution}>
+                <select bind:value={appState.resolution}>
                     <option value="800,480">X20/X18 (800x480)</option>
                     <option value="784,316">X20/X18 (784x316)</option>
                     <option value="480,320">X18 (480x320)</option>
@@ -528,12 +531,12 @@
                 </select>
             </label>
 
-            {#if state.resolution === "custom"}
+            {#if appState.resolution === "custom"}
                 <label class="field mini">
                     <span>Width</span>
                     <input
                         type="number"
-                        bind:value={state.customW}
+                        bind:value={appState.customW}
                         min="150"
                         step="1"
                     />
@@ -543,7 +546,7 @@
                     <span>Height</span>
                     <input
                         type="number"
-                        bind:value={state.customH}
+                        bind:value={appState.customH}
                         min="120"
                         step="1"
                     />
@@ -552,7 +555,7 @@
 
             <label class="field">
                 <span>Map Type</span>
-                <select bind:value={state.mapType}>
+                <select bind:value={appState.mapType}>
                     {#each Object.entries(MAP_TYPES) as [value, label]}
                         <option {value}>{label}</option>
                     {/each}
@@ -563,7 +566,7 @@
         <div class="row rotate-row">
             <RotationSlider
                 label="Rotation"
-                bind:value={state.rotation}
+                bind:value={appState.rotation}
                 showStepButtons={true}
                 stepSize={15}
                 onStepClick={rotateStep}
@@ -574,38 +577,38 @@
             <ExportControls
                 {map}
                 projectSnapshot={{
-                    mapTitle: state.mapTitle,
+                    mapTitle: appState.mapTitle,
                     mapViewport,
-                    mapWidth: state.mapWidth,
-                    mapHeight: state.mapHeight,
+                    mapWidth: appState.mapWidth,
+                    mapHeight: appState.mapHeight,
                     bounds,
-                    rotation: state.rotation,
+                    rotation: appState.rotation,
                     zoom,
-                    mapType: state.mapType,
+                    mapType: appState.mapType,
                     center,
-                    homePosition: state.homePosition,
-                    f3aZoneVisible: state.isF3AZoneVisible,
-                    f3aRotation: state.f3aRotation,
-                    f3aBaseDistance: state.f3aBaseDistance,
-                    f3aColor: state.f3aColor,
+                    homePosition: appState.homePosition,
+                    f3aZoneVisible: appState.isF3AZoneVisible,
+                    f3aRotation: appState.f3aRotation,
+                    f3aBaseDistance: appState.f3aBaseDistance,
+                    f3aColor: appState.f3aColor,
                     f3aOverlay:
-                        state.isF3AZoneVisible && f3aZoneGeometry
+                        appState.isF3AZoneVisible && f3aZoneGeometry
                             ? {
                                   geometry: f3aZoneGeometry,
-                                  color: state.f3aColor,
+                                  color: appState.f3aColor,
                               }
                             : null,
-                    selectedRunway: state.selectedRunway,
+                    selectedRunway: appState.selectedRunway,
                 }}
             />
         </div>
 
-        <EthosBoundsDisplay {bounds} rotation={state.rotation} />
+        <EthosBoundsDisplay {bounds} rotation={appState.rotation} />
     </section>
 
     <section class="workspace">
         <div class="map-column">
-            <div class="coords" style={`min-width:${state.mapWidth}px;`}>
+            <div class="coords" style={`min-width:${appState.mapWidth}px;`}>
                 {#if isMeasureActive}
                     📏 BRG {measureBearing.toFixed(1)}° | REL {measureRelativeAngle.toFixed(
                         1,
@@ -621,7 +624,7 @@
                         —
                     {/if}
                 {:else}
-                    {#if state.homePosition}
+                    {#if appState.homePosition}
                         <span
                             class="coords-lock"
                             title="Home position is locked">🔒</span
@@ -636,27 +639,27 @@
             <div
                 class="map-box"
                 class:measure-mode={isMeasureActive}
-                class:runway-pick-mode={state.isRunwayPickActive}
+                class:runway-pick-mode={appState.isRunwayPickActive}
                 bind:this={mapViewport}
-                style={`width:${state.mapWidth}px;height:${state.mapHeight}px;`}
+                style={`width:${appState.mapWidth}px;height:${appState.mapHeight}px;`}
             >
                 <div class="map-surface" bind:this={mapContainer}></div>
                 <F3AZoneOverlay
                     geometry={f3aZoneGeometry}
-                    color={state.f3aColor}
+                    color={appState.f3aColor}
                 />
                 <RunwayOverlay
                     runway={projectedRunway}
                     pendingPoint={runwayPickStartScreen}
-                    isPicking={state.isRunwayPickActive}
-                    isEditing={state.isRunwayEditActive}
+                    isPicking={appState.isRunwayPickActive}
+                    isEditing={appState.isRunwayEditActive}
                     onendpointdrag={handleEndpointDrag}
                 />
                 {#if homeScreenPoint}
                     <HomeCrosshairOverlay
                         screenPoint={homeScreenPoint}
-                        mapWidth={state.mapWidth}
-                        mapHeight={state.mapHeight}
+                        mapWidth={appState.mapWidth}
+                        mapHeight={appState.mapHeight}
                     />
                     <MeasureLineOverlay
                         isActive={isMeasureActive}
@@ -667,25 +670,25 @@
                     <MeasureLineOverlay
                         isActive={isMeasureActive}
                         startPoint={{
-                            x: state.mapWidth / 2,
-                            y: state.mapHeight / 2,
+                            x: appState.mapWidth / 2,
+                            y: appState.mapHeight / 2,
                         }}
                         targetPoint={measureTargetScreen}
                     />
                     <div class="crosshair hud-overlay"></div>
                 {/if}
                 <button
-                    class={`zoom-badge hud-overlay ${state.zoomLock ? "locked" : ""}`}
-                    on:click={() => (state.zoomLock = !state.zoomLock)}
-                    title={state.zoomLock
+                    class={`zoom-badge hud-overlay ${appState.zoomLock ? "locked" : ""}`}
+                    onclick={() => (appState.zoomLock = !appState.zoomLock)}
+                    title={appState.zoomLock
                         ? "Zoom locked — click to unlock"
                         : "Click to lock zoom"}
                 >
-                    {state.zoomLock ? "🔒 " : ""}Zoom: {zoom.toFixed(1)}
+                    {appState.zoomLock ? "🔒 " : ""}Zoom: {zoom.toFixed(1)}
                 </button>
                 <button
                     class={`measure-btn hud-overlay ${isMeasureActive ? "active" : ""}`}
-                    on:click={toggleMeasure}
+                    onclick={toggleMeasure}
                 >
                     Measure
                 </button>
@@ -696,7 +699,7 @@
                 {/if}
             </div>
 
-            <SearchPanel {map} mapWidth={state.mapWidth} />
+            <SearchPanel {map} mapWidth={appState.mapWidth} />
         </div>
 
         <ToolsSidebar
