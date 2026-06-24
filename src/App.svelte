@@ -149,8 +149,17 @@
     $effect(() => {
         if (!map) return;
         refreshProjectedOverlays();
-        // Stop measure tool if home position was cleared
-        if (!appState.homePosition && isMeasureActive) stopMeasure();
+    });
+
+    // Stop measure tool when home position is cleared (but not when measure is
+    // simply started without a home — untrack isMeasureActive so toggling it on
+    // does not re-run this effect and immediately kill measure).
+    $effect(() => {
+        if (!appState.homePosition) {
+            untrack(() => {
+                if (isMeasureActive) stopMeasure();
+            });
+        }
     });
 
     onMount(() => {
