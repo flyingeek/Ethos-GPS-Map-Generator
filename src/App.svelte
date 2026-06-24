@@ -1,5 +1,5 @@
 <script>
-    import { onMount, setContext } from "svelte";
+    import { onMount, setContext, untrack } from "svelte";
     import { isIOS } from "./lib/deviceInfo.svelte.js";
     import { buildRasterStyle, MAP_TYPES } from "./mapStyles.js";
     import { normalizeAngle, calculateMeasureState } from "./lib/geoUtils.js";
@@ -29,6 +29,22 @@
     let mapContainer = $state(null);
     let mapViewport = $state(null);
     let maplibreglApi = $state(null);
+
+    // Guard against reactive feedback loops: imperative map mutations
+    // (setBearing/setStyle/easeTo/resize) synchronously emit move/zoom/rotate
+    // events whose handlers write back to $state. While this flag is set, those
+    // handlers skip their reactive write-backs so effects don't read+write the
+    // same state and trip Svelte's effect_update_depth_exceeded.
+    let applyingMapSync = false;
+    function withMapSync(fn) {
+        const previous = applyingMapSync;
+        applyingMapSync = true;
+        try {
+            fn();
+        } finally {
+            applyingMapSync = previous;
+        }
+    }
 
     // Map-derived state (owned by map events)
     let bounds = $state({ north: 0, south: 0, west: 0, east: 0 });
@@ -60,7 +76,7 @@
         mapViewport.style.height = `${appState.mapHeight}px`;
         if (map) {
             queueMicrotask(() => {
-                map.resize();
+                withMapSync(() => map.resize());
                 refreshProjectedOverlays();
             });
         }
@@ -69,24 +85,32 @@
     // Sync map tile style when mapType changes
     $effect(() => {
         if (!map) return;
-        const savedMapState = {
-            center: map.getCenter(),
-            zoom: map.getZoom(),
-            bearing: map.getBearing(),
-            pitch: map.getPitch(),
-        };
-        map.setStyle(buildRasterStyle(appState.mapType));
-        map.once("styledata", () => {
-            map.jumpTo(savedMapState);
-            refreshBounds();
-            refreshProjectedOverlays();
+        const mapType = appState.mapType;
+        untrack(() => {
+            const savedMapState = {
+                center: map.getCenter(),
+                zoom: map.getZoom(),
+                bearing: map.getBearing(),
+                pitch: map.getPitch(),
+            };
+            withMapSync(() => map.setStyle(buildRasterStyle(mapType)));
+            map.once("styledata", () => {
+                withMapSync(() => map.jumpTo(savedMapState));
+                refreshBounds();
+                refreshProjectedOverlays();
+            });
         });
     });
 
     // Sync bearing from state.rotation → map
     $effect(() => {
         if (!map) return;
-        map.setBearing(appState.rotation);
+        const rotation = appState.rotation;
+        untrack(() => {
+            if (Math.abs(map.getBearing() - rotation) > 0.05) {
+                withMapSync(() => map.setBearing(rotation));
+            }
+        });
     });
 
     // Sync zoom lock → map interaction handlers
@@ -205,9 +229,11 @@
                 });
 
                 map.on("rotate", () => {
-                    const newBearing = Number(map.getBearing().toFixed(1));
-                    if (Math.abs(newBearing - appState.rotation) < 360) {
-                        appState.rotation = newBearing;
+                    if (!applyingMapSync) {
+                        const newBearing = Number(map.getBearing().toFixed(1));
+                        if (newBearing !== appState.rotation) {
+                            appState.rotation = newBearing;
+                        }
                     }
                     refreshProjectedOverlays();
                     if (isMeasureActive) {
