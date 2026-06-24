@@ -1,25 +1,35 @@
 <script>
-    import { createEventDispatcher } from "svelte";
+    import { createEventDispatcher, getContext } from "svelte";
     import { toDms } from "../lib/geoUtils.js";
     import RotationSlider from "./RotationSlider.svelte";
 
-    export let homePosition = null;
-    export let isF3AZoneVisible = false;
-    export let f3aRotation = 0;
-    export let f3aBaseDistance = 150;
-    export let f3aColor = "#ffffff";
-    export let runwayDirs = null;
-
+    const state = getContext("app");
     const f3aDefaultColor = "#ffffff";
 
+    // sethome still needs App.svelte (requires map.getCenter)
     const dispatch = createEventDispatcher();
+
+    function handleToggleF3A() {
+        if (!state.isF3AZoneVisible) {
+            // Sync f3aRotation to current map rotation before showing zone
+            state.f3aRotation = state.rotation;
+        }
+        state.toggleF3A();
+    }
+
+    function handleResetF3ARotation() {
+        state.f3aRotation = state.rotation;
+    }
 </script>
 
-<section class="home-panel" class:with-f3a={homePosition}>
+<section class="home-panel" class:with-f3a={state.homePosition}>
     <h2>Reference Position</h2>
-    {#if homePosition}
+    {#if state.homePosition}
         <p class="home-coords">
-            🔒 {toDms(homePosition.lat, true)}, {toDms(homePosition.lng, false)}
+            🔒 {toDms(state.homePosition.lat, true)}, {toDms(
+                state.homePosition.lng,
+                false,
+            )}
         </p>
     {:else}
         <p>
@@ -28,8 +38,8 @@
         </p>
     {/if}
     <div class="home-actions">
-        {#if homePosition}
-            <button class="warn" on:click={() => dispatch("clearhome")}
+        {#if state.homePosition}
+            <button class="warn" on:click={() => state.clearHomePosition()}
                 >Clear Reference</button
             >
         {:else}
@@ -40,38 +50,39 @@
     </div>
 </section>
 
-{#if homePosition}
+{#if state.homePosition}
     <section class="f3a-panel">
         <div class="f3a-title-row">
             <h2>F3A Zone</h2>
-            {#if runwayDirs}
+            {#if state.runwayDirs}
                 <span class="runway-perp-indicator">
                     <span class="rpi-sym">⊥</span>
-                    <span class="rpi-val">{runwayDirs.topLabel}</span>
+                    <span class="rpi-val">{state.runwayDirs.topLabel}</span>
                     <span class="rpi-line"></span>
                     <span class="rpi-sym">⊤</span>
-                    <span class="rpi-val">{runwayDirs.bottomLabel}</span>
+                    <span class="rpi-val">{state.runwayDirs.bottomLabel}</span>
                 </span>
             {/if}
         </div>
         <p>
             Draw a 120° triangle from the reference position with the base
-            centered {Math.max(1, Number(f3aBaseDistance) || 150).toFixed(0)}m
-            away.
+            centered {Math.max(1, Number(state.f3aBaseDistance) || 150).toFixed(
+                0,
+            )}m away.
         </p>
         <div class="home-actions">
             <button
-                class={isF3AZoneVisible ? "warn" : "ok"}
-                on:click={() => dispatch("togglef3a")}
-                >{isF3AZoneVisible ? "Remove Zone" : "Show Zone"}</button
+                class={state.isF3AZoneVisible ? "warn" : "ok"}
+                on:click={handleToggleF3A}
+                >{state.isF3AZoneVisible ? "Remove Zone" : "Show Zone"}</button
             >
         </div>
         <label class="field zone-rotation-field">
             <RotationSlider
                 label="Rotation"
-                bind:value={f3aRotation}
-                disabled={!isF3AZoneVisible}
-                onReset={() => dispatch("resetf3arotation")}
+                bind:value={state.f3aRotation}
+                disabled={!state.isF3AZoneVisible}
+                onReset={handleResetF3ARotation}
                 inlineLabel={false}
                 horizontalSliderWidth={110}
                 horizontalWrap={false}
@@ -86,17 +97,17 @@
                     type="number"
                     min="1"
                     step="1"
-                    bind:value={f3aBaseDistance}
+                    bind:value={state.f3aBaseDistance}
                 />
             </label>
             <label class="field zone-field">
                 <span>Zone Color</span>
                 <div class="color-row">
-                    <input type="color" bind:value={f3aColor} />
-                    {#if f3aColor !== f3aDefaultColor}
+                    <input type="color" bind:value={state.f3aColor} />
+                    {#if state.f3aColor !== f3aDefaultColor}
                         <button
                             class="reset-color"
-                            on:click={() => (f3aColor = f3aDefaultColor)}
+                            on:click={() => (state.f3aColor = f3aDefaultColor)}
                             >reset</button
                         >
                     {/if}

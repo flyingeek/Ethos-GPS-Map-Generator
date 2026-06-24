@@ -1,5 +1,5 @@
 <script>
-    import { onMount } from "svelte";
+    import { onMount, setContext } from "svelte";
     import { isIOS } from "./lib/deviceInfo.js";
     import { buildRasterStyle, MAP_TYPES } from "./mapStyles.js";
     import { normalizeAngle, calculateMeasureState } from "./lib/geoUtils.js";
@@ -7,11 +7,8 @@
         projectLngLat,
         projectF3AZoneGeometry,
     } from "./lib/overlayProjection.js";
-    import {
-        buildRunwayFromScreen,
-        projectRunway,
-        rotateRunway,
-    } from "./lib/runwayUtils.js";
+    import { buildRunwayFromScreen, projectRunway } from "./lib/runwayUtils.js";
+    import { AppState } from "./lib/appState.svelte.js";
     import ProjectShelf from "./components/ProjectShelf.svelte";
     import SearchPanel from "./components/SearchPanel.svelte";
     import RotationSlider from "./components/RotationSlider.svelte";
@@ -25,22 +22,26 @@
     import ethosLogoUrl from "../ethos logo.png";
     import { ensureMapLibreApi } from "./lib/mapLoader.js";
 
+    const state = new AppState();
+    setContext("app", state);
+
     let map;
     let mapContainer;
     let mapViewport;
+    let maplibreglApi = null;
 
-    let mapTitle = "CestasMap";
-    let resolution = "784,316";
-    let customW = 800;
-    let customH = 480;
-    let mapType = "y";
-    let zoomLock = false;
-    let rotation = 42.5;
-
+    // Map-derived state (owned by map events)
     let bounds = { north: 0, south: 0, west: 0, east: 0 };
     let center = { lat: 44.71607983566827, lng: -0.7165001920591294 };
     let zoom = 14.7;
 
+    // Projected screen coordinates
+    let homeScreenPoint = null;
+    let f3aZoneGeometry = null;
+    let projectedRunway = null;
+    let runwayPickStartScreen = null;
+
+    // Measure tool (ephemeral, needs map)
     let isMeasureActive = false;
     let measureStart = null;
     let measureTarget = null;
@@ -49,44 +50,13 @@
     let measureDistanceM = 0;
     let measureBearing = 0;
     let measureRelativeAngle = 0;
-    let homePosition = { lat: 44.714409685877825, lng: -0.7168534611050745 };
-    let homeScreenPoint = null;
-    let isF3AZoneVisible = true;
-    let f3aRotation = 42.5;
-    let f3aBaseDistance = 150;
-    const f3aDefaultColor = "#ffffff";
-    let f3aColor = f3aDefaultColor;
-    let f3aZoneGeometry = null;
-    let selectedRunway = null;
-    let projectedRunway = null;
-    let isRunwayPickActive = false;
-    let isRunwayEditActive = false;
-    let runwayPickStart = null;
-    let runwayPickStartScreen = null;
-    let runwayStatus = "Pick runway ends to define runway.";
 
-    $: hudReference = homePosition ?? center;
+    $: hudReference = state.homePosition ?? center;
 
-    $: mapWidth =
-        resolution === "custom"
-            ? Number(customW) || 800
-            : Number(resolution.split(",")[0]);
-    $: mapHeight =
-        resolution === "custom"
-            ? Number(customH) || 480
-            : Number(resolution.split(",")[1]);
-
-    $: if (map) {
-        homePosition;
-        isF3AZoneVisible;
-        f3aRotation;
-        f3aBaseDistance;
-        refreshProjectedOverlays();
-    }
-
+    // Sync viewport element size when map dimensions change
     $: if (mapViewport) {
-        mapViewport.style.width = `${mapWidth}px`;
-        mapViewport.style.height = `${mapHeight}px`;
+        mapViewport.style.width = `${state.mapWidth}px`;
+        mapViewport.style.height = `${state.mapHeight}px`;
         if (map) {
             queueMicrotask(() => {
                 map.resize();
@@ -95,59 +65,36 @@
         }
     }
 
+    // Sync map tile style when mapType changes
     $: if (map) {
-        const state = {
+        const savedMapState = {
             center: map.getCenter(),
             zoom: map.getZoom(),
             bearing: map.getBearing(),
             pitch: map.getPitch(),
         };
-        map.setStyle(buildRasterStyle(mapType));
+        map.setStyle(buildRasterStyle(state.mapType));
         map.once("styledata", () => {
-            map.jumpTo(state);
+            map.jumpTo(savedMapState);
             refreshBounds();
             refreshProjectedOverlays();
         });
     }
 
+    // One-time setup: disable rotate/pitch gestures
     $: if (map) {
         map.dragRotate.disable();
         map.touchPitch.disable();
     }
 
+    // Sync bearing from state.rotation → map
     $: if (map) {
-        map.setBearing(rotation);
+        map.setBearing(state.rotation);
     }
 
-    $: runwayDirs = (() => {
-        if (!selectedRunway) return null;
-        // Check if the runway is roughly horizontal on screen (within ±15° of 90°/270°)
-        const screenAngle =
-            (((selectedRunway.heading - rotation) % 360) + 360) % 360;
-        const distFrom90 = Math.min(
-            Math.abs(screenAngle - 90),
-            Math.abs(screenAngle - 270),
-        );
-        // Perpendicular headings (0–360)
-        const perp1 = (selectedRunway.heading + 90 + 360) % 360;
-        const perp2 = (selectedRunway.heading - 90 + 360) % 360;
-        // Map's up direction (0–360)
-        const mapUp = ((rotation % 360) + 360) % 360;
-        // Which perp is closer to map up?
-        const diff1 = Math.min(
-            Math.abs(perp1 - mapUp),
-            360 - Math.abs(perp1 - mapUp),
-        );
-        const upPerp = diff1 <= 90 ? perp1 : perp2;
-        const downPerp = diff1 <= 90 ? perp2 : perp1;
-        return {
-            topLabel: formatPerpLabel(upPerp),
-            bottomLabel: formatPerpLabel(downPerp),
-        };
-    })();
-
+    // Sync zoom lock → map interaction handlers
     $: if (map) {
-        if (zoomLock) {
+        if (state.zoomLock) {
             map.scrollZoom.disable();
             map.doubleClickZoom.disable();
             map.touchZoomRotate.disableRotation();
@@ -162,7 +109,31 @@
         }
     }
 
-    let maplibreglApi = null;
+    // Sync runway edit mode → map pan/zoom interactions
+    $: if (map) {
+        if (state.isRunwayEditActive) {
+            map.dragPan.disable();
+            map.scrollZoom.disable();
+            map.doubleClickZoom.disable();
+        } else {
+            map.dragPan.enable();
+            map.scrollZoom.enable();
+            map.doubleClickZoom.enable();
+        }
+    }
+
+    // Refresh projected overlays when overlay-relevant state changes
+    $: if (map) {
+        state.homePosition;
+        state.isF3AZoneVisible;
+        state.f3aRotation;
+        state.f3aBaseDistance;
+        state.selectedRunway;
+        state.runwayPickStart;
+        refreshProjectedOverlays();
+        // Stop measure tool if home position was cleared
+        if (!state.homePosition && isMeasureActive) stopMeasure();
+    }
 
     onMount(() => {
         let cancelled = false;
@@ -174,10 +145,10 @@
 
                 map = new maplibreglApi.Map({
                     container: mapContainer,
-                    style: buildRasterStyle(mapType),
+                    style: buildRasterStyle(state.mapType),
                     center: [center.lng, center.lat],
                     zoom,
-                    bearing: rotation,
+                    bearing: state.rotation,
                     preserveDrawingBuffer: true,
                     attributionControl: false,
                     maxZoom: 21.9,
@@ -238,10 +209,8 @@
 
                 map.on("rotate", () => {
                     const newBearing = Number(map.getBearing().toFixed(1));
-                    // MapLibre normalises -180 → 180 (same angle). Guard against that
-                    // causing a full-range jump on the RTL slider.
-                    if (Math.abs(newBearing - rotation) < 360) {
-                        rotation = newBearing;
+                    if (Math.abs(newBearing - state.rotation) < 360) {
+                        state.rotation = newBearing;
                     }
                     refreshProjectedOverlays();
                     if (isMeasureActive) {
@@ -250,9 +219,7 @@
                 });
 
                 map.on("mousemove", (event) => {
-                    if (!isMeasureActive) {
-                        return;
-                    }
+                    if (!isMeasureActive) return;
 
                     let cursorX = event.point.x;
                     let cursorY = event.point.y;
@@ -264,24 +231,17 @@
                     }
 
                     const hoverLngLat = map.unproject([cursorX, cursorY]);
-
                     measureTarget = {
                         lat: hoverLngLat.lat,
                         lng: hoverLngLat.lng,
                     };
-                    measureCursorPoint = {
-                        x: cursorX,
-                        y: cursorY,
-                    };
+                    measureCursorPoint = { x: cursorX, y: cursorY };
                     measureTargetScreen = measureCursorPoint;
                     updateMeasureLine();
                 });
 
                 map.on("mouseout", () => {
-                    if (!isMeasureActive) {
-                        return;
-                    }
-
+                    if (!isMeasureActive) return;
                     measureTarget = null;
                     measureCursorPoint = null;
                     measureTargetScreen = null;
@@ -289,12 +249,8 @@
                 });
 
                 map.on("contextmenu", () => {
-                    if (isMeasureActive) {
-                        toggleMeasure();
-                    }
-                    if (isRunwayPickActive) {
-                        cancelRunwayPick();
-                    }
+                    if (isMeasureActive) toggleMeasure();
+                    if (state.isRunwayPickActive) state.cancelRunwayPick();
                 });
 
                 map.on("click", (event) => {
@@ -302,16 +258,15 @@
                 });
 
                 map.on("dragend", () => {
-                    if (!homePosition) return;
-                    const sp = projectLngLat(map, homePosition);
+                    if (!state.homePosition) return;
+                    const sp = projectLngLat(map, state.homePosition);
                     if (!sp) return;
 
-                    const cx = mapWidth / 2;
-                    const cy = mapHeight / 2;
+                    const cx = state.mapWidth / 2;
+                    const cy = state.mapHeight / 2;
                     const dx = cx - sp.x;
                     const dy = cy - sp.y;
-
-                    const SNAP_THRESHOLD = 12; // Must match HomeCrosshairOverlay
+                    const SNAP_THRESHOLD = 12;
 
                     let needsEase = false;
                     let targetScreenPoint = map.project(map.getCenter());
@@ -342,9 +297,7 @@
 
         return () => {
             cancelled = true;
-            if (map) {
-                map.remove();
-            }
+            if (map) map.remove();
         };
     });
 
@@ -367,25 +320,20 @@
     }
 
     function rotateStep(step) {
-        rotation = normalizeAngle(rotation + step);
-        if (map) {
-            map.easeTo({ bearing: rotation, duration: 250 });
-        }
+        state.rotation = normalizeAngle(state.rotation + step);
+        if (map) map.easeTo({ bearing: state.rotation, duration: 250 });
     }
 
     function resetRotation() {
-        rotation = 0;
-        if (map) {
-            map.easeTo({ bearing: 0, duration: 260 });
-        }
+        state.rotation = 0;
+        if (map) map.easeTo({ bearing: 0, duration: 260 });
     }
 
     function toggleMeasure() {
         if (!map) return;
-
         if (!isMeasureActive) {
             isMeasureActive = true;
-            measureStart = homePosition ?? map.getCenter();
+            measureStart = state.homePosition ?? map.getCenter();
             measureTarget = null;
             measureCursorPoint = null;
             measureTargetScreen = null;
@@ -395,7 +343,6 @@
             updateMeasureLine();
             return;
         }
-
         stopMeasure();
     }
 
@@ -411,13 +358,9 @@
     }
 
     function updateMeasureLine() {
-        if (!map) {
-            return;
-        }
-
-        const reference = homePosition ?? map.getCenter();
+        if (!map) return;
+        const reference = state.homePosition ?? map.getCenter();
         const target = measureTarget;
-
         if (!target) {
             measureDistanceM = 0;
             measureBearing = 0;
@@ -425,98 +368,52 @@
             measureTargetScreen = null;
             return;
         }
-
-        const measureState = calculateMeasureState(reference, target, rotation);
+        const measureState = calculateMeasureState(
+            reference,
+            target,
+            state.rotation,
+        );
         measureDistanceM = measureState.distanceM;
         measureBearing = measureState.bearing;
         measureRelativeAngle = measureState.relativeAngle;
         measureTargetScreen = measureCursorPoint ?? projectLngLat(map, target);
     }
 
-    function updateHomeCrosshairScreenPoint() {
-        homeScreenPoint = projectLngLat(map, homePosition);
-    }
-
     function refreshProjectedOverlays() {
-        updateHomeCrosshairScreenPoint();
-        updateF3AZoneOverlay();
-        updateRunwayOverlay();
-    }
-
-    function updateF3AZoneOverlay() {
+        homeScreenPoint = projectLngLat(map, state.homePosition);
         f3aZoneGeometry = projectF3AZoneGeometry(
             map,
-            homePosition,
-            f3aRotation,
-            f3aBaseDistance,
-            isF3AZoneVisible,
+            state.homePosition,
+            state.f3aRotation,
+            state.f3aBaseDistance,
+            state.isF3AZoneVisible,
         );
-    }
-
-    function updateRunwayOverlay() {
-        projectedRunway = projectRunway(map, selectedRunway);
-        runwayPickStartScreen = runwayPickStart
-            ? projectLngLat(map, runwayPickStart)
+        projectedRunway = projectRunway(map, state.selectedRunway);
+        runwayPickStartScreen = state.runwayPickStart
+            ? projectLngLat(map, state.runwayPickStart)
             : null;
     }
 
-    // Convert 0–360 bearing to ±180 E/W label (same convention as RotationSlider)
-    function formatPerpLabel(bearing) {
-        const val = bearing > 180 ? bearing - 360 : bearing;
-        const abs = Number(Math.abs(val).toFixed(1));
-        const dir = val > 0 ? "E" : val < 0 ? "W" : "";
-        return `${abs}°${dir}`;
-    }
-
-    function clearRunwaySelection() {
-        stopRunwayEdit();
-        selectedRunway = null;
-        runwayPickStart = null;
-        isRunwayPickActive = false;
-        runwayStatus = "Pick runway ends to define runway.";
-        updateRunwayOverlay();
-    }
-
-    function updateSelectedRunway(runway, statusMessage) {
-        selectedRunway = runway;
-        runwayStatus = statusMessage;
-        updateRunwayOverlay();
-    }
-
-    function rotateSelectedRunway(deltaDeg) {
-        if (!selectedRunway) return;
-        updateSelectedRunway(
-            rotateRunway(selectedRunway, deltaDeg),
-            `Runway axis rotated ${deltaDeg > 0 ? "+" : ""}${deltaDeg.toFixed(1)}°.`,
-        );
-    }
-
-    function toggleRunwayEdit() {
-        if (!map || !selectedRunway) return;
-        isRunwayEditActive = !isRunwayEditActive;
-        if (isRunwayEditActive) {
-            map.dragPan.disable();
-            map.scrollZoom.disable();
-            map.doubleClickZoom.disable();
-        } else {
-            map.dragPan.enable();
-            map.scrollZoom.enable();
-            map.doubleClickZoom.enable();
+    function setHomePosition() {
+        if (!map) return;
+        const c = map.getCenter();
+        state.setHomePosition(c.lat, c.lng);
+        refreshProjectedOverlays();
+        if (isMeasureActive) {
+            measureStart = state.homePosition;
+            updateMeasureLine();
         }
     }
 
-    function stopRunwayEdit() {
-        if (!isRunwayEditActive) return;
-        isRunwayEditActive = false;
-        if (map) {
-            map.dragPan.enable();
-            map.scrollZoom.enable();
-            map.doubleClickZoom.enable();
-        }
+    function startRunwayPick() {
+        if (!map) return;
+        if (isMeasureActive) stopMeasure();
+        state.startRunwayPick();
+        refreshProjectedOverlays();
     }
 
     function handleEndpointDrag(event) {
-        if (!selectedRunway || !map || !mapContainer) return;
+        if (!state.selectedRunway || !map || !mapContainer) return;
         const { endpoint, clientX, clientY } = event.detail;
         const rect = mapContainer.getBoundingClientRect();
         const x = clientX - rect.left;
@@ -525,102 +422,38 @@
             endpoint === "first" ? { x, y } : projectedRunway.firstPoint;
         const newLast =
             endpoint === "last" ? { x, y } : projectedRunway.lastPoint;
-        updateSelectedRunway(
+        state.updateSelectedRunway(
             buildRunwayFromScreen(map, newFirst, newLast, {
-                source: selectedRunway.source,
-                stripWidth: selectedRunway.stripWidth,
+                source: state.selectedRunway.source,
+                stripWidth: state.selectedRunway.stripWidth,
             }),
             "Runway edited.",
         );
-    }
-
-    function handleRunwayWheel(event) {
-        if (!selectedRunway) return;
-        event.preventDefault();
-        rotateSelectedRunway(event.deltaY > 0 ? -0.1 : 0.1);
-    }
-
-    function handleRunwayHeadingWheel(event) {
-        if (!selectedRunway) return;
-        event.preventDefault();
-        event.stopPropagation();
-        rotateSelectedRunway(event.deltaY > 0 ? 0.1 : -0.1);
-    }
-
-    function startRunwayPick() {
-        if (!map) return;
-        if (isMeasureActive) {
-            stopMeasure();
-        }
-        selectedRunway = null;
-        runwayPickStart = null;
-        isRunwayPickActive = true;
-        runwayStatus = "Click one runway end, then the other.";
-        updateRunwayOverlay();
-    }
-
-    function cancelRunwayPick() {
-        isRunwayPickActive = false;
-        runwayPickStart = null;
-        runwayStatus = selectedRunway
-            ? "Runway selected."
-            : "Pick runway ends to define runway.";
-        updateRunwayOverlay();
+        // projectedRunway refreshed by the reactive overlay block
     }
 
     function handleRunwayMapClick(event) {
-        if (!isRunwayPickActive || !map) return;
+        if (!state.isRunwayPickActive || !map) return;
 
         const clickedPoint = { x: event.point.x, y: event.point.y };
-        if (!runwayPickStart) {
+        if (!state.runwayPickStart) {
             const start = map.unproject([clickedPoint.x, clickedPoint.y]);
-            runwayPickStart = { lat: start.lat, lng: start.lng };
-            runwayStatus = "Now click the other runway end.";
-            updateRunwayOverlay();
+            state.runwayPickStart = { lat: start.lat, lng: start.lng };
+            state.runwayStatus = "Now click the other runway end.";
+            refreshProjectedOverlays();
             return;
         }
 
-        const startPoint = projectLngLat(map, runwayPickStart);
-        selectedRunway = buildRunwayFromScreen(map, startPoint, clickedPoint, {
-            source: "manual",
-            stripWidth: 18,
-        });
-        isRunwayPickActive = false;
-        runwayPickStart = null;
-        runwayStatus = "Manual runway picked.";
-        updateRunwayOverlay();
-    }
-
-    function setHomePosition() {
-        if (!map) return;
-        const c = map.getCenter();
-        homePosition = { lat: c.lat, lng: c.lng };
-        refreshProjectedOverlays();
-        if (isMeasureActive) {
-            measureStart = homePosition;
-            updateMeasureLine();
-        }
-    }
-
-    function clearHomePosition() {
-        homePosition = null;
-        if (isMeasureActive) {
-            stopMeasure();
-        }
-        isF3AZoneVisible = false;
-        refreshProjectedOverlays();
-    }
-
-    function toggleF3AZone() {
-        if (!isF3AZoneVisible && map) {
-            f3aRotation = Number(map.getBearing().toFixed(1));
-        }
-        isF3AZoneVisible = !isF3AZoneVisible;
-        refreshProjectedOverlays();
-    }
-
-    function resetF3ARotation() {
-        f3aRotation = map ? Number(map.getBearing().toFixed(1)) : 0;
+        const startPoint = projectLngLat(map, state.runwayPickStart);
+        state.updateSelectedRunway(
+            buildRunwayFromScreen(map, startPoint, clickedPoint, {
+                source: "manual",
+                stripWidth: 18,
+            }),
+            "Manual runway picked.",
+        );
+        state.isRunwayPickActive = false;
+        state.runwayPickStart = null;
         refreshProjectedOverlays();
     }
 
@@ -628,49 +461,7 @@
         const p = event.detail?.project;
         if (!p) return;
 
-        mapTitle = p.mapTitle ?? p.name;
-        resolution = p.resolution;
-        customW = p.customW;
-        customH = p.customH;
-        mapType = p.mapType;
-        zoomLock = p.zoomLock;
-        rotation = p.rotation;
-        homePosition = p.homePosition ?? null;
-        f3aRotation =
-            typeof p.f3aRotation === "number" && Number.isFinite(p.f3aRotation)
-                ? p.f3aRotation
-                : f3aRotation;
-        f3aBaseDistance = Math.max(1, Number(p.f3aBaseDistance) || 150);
-        f3aColor =
-            typeof p.f3aColor === "string" &&
-            /^#[0-9a-fA-F]{6}$/.test(p.f3aColor)
-                ? p.f3aColor
-                : f3aDefaultColor;
-        isF3AZoneVisible = Boolean(p.f3aZoneVisible) && Boolean(homePosition);
-
-        const r = p.selectedRunway;
-        if (
-            r?.start?.lat != null &&
-            r?.start?.lng != null &&
-            r?.end?.lat != null &&
-            r?.end?.lng != null
-        ) {
-            selectedRunway = {
-                source: r.source ?? "manual",
-                confidence: 1,
-                score: 1,
-                stripWidth: r.stripWidth ?? 18,
-                start: r.start,
-                end: r.end,
-                center: r.center,
-                heading: r.heading,
-                lengthM: r.lengthM,
-            };
-            runwayStatus = "Runway selected.";
-        } else {
-            selectedRunway = null;
-            runwayStatus = "Pick runway ends to define runway.";
-        }
+        state.loadProject(p);
 
         if (map) {
             map.jumpTo({
@@ -689,8 +480,8 @@
 <svelte:window
     on:keydown={(e) => {
         if (e.key === "Escape") {
-            if (isRunwayEditActive) stopRunwayEdit();
-            if (isRunwayPickActive) cancelRunwayPick();
+            if (state.isRunwayEditActive) state.stopRunwayEdit();
+            if (state.isRunwayPickActive) state.cancelRunwayPick();
         }
     }}
 />
@@ -717,33 +508,7 @@
         </div>
 
         <ProjectShelf
-            projectState={{
-                mapTitle,
-                resolution,
-                customW,
-                customH,
-                mapType,
-                zoomLock,
-                rotation,
-                center,
-                zoom,
-                homePosition,
-                f3aZoneVisible: isF3AZoneVisible,
-                f3aRotation,
-                f3aBaseDistance,
-                f3aColor,
-                selectedRunway: selectedRunway
-                    ? {
-                          source: selectedRunway.source,
-                          stripWidth: selectedRunway.stripWidth,
-                          start: selectedRunway.start,
-                          end: selectedRunway.end,
-                          center: selectedRunway.center,
-                          heading: selectedRunway.heading,
-                          lengthM: selectedRunway.lengthM,
-                      }
-                    : null,
-            }}
+            projectState={state.toSnapshot(center, zoom, bounds)}
             on:loadproject={handleLoadProject}
         />
     </header>
@@ -752,12 +517,12 @@
         <div class="row">
             <label class="field">
                 <span>Project Title</span>
-                <input type="text" bind:value={mapTitle} maxlength="11" />
+                <input type="text" bind:value={state.mapTitle} maxlength="11" />
             </label>
 
             <label class="field">
                 <span>Resolution</span>
-                <select bind:value={resolution}>
+                <select bind:value={state.resolution}>
                     <option value="800,480">X20/X18 (800x480)</option>
                     <option value="784,316">X20/X18 (784x316)</option>
                     <option value="480,320">X18 (480x320)</option>
@@ -765,12 +530,12 @@
                 </select>
             </label>
 
-            {#if resolution === "custom"}
+            {#if state.resolution === "custom"}
                 <label class="field mini">
                     <span>Width</span>
                     <input
                         type="number"
-                        bind:value={customW}
+                        bind:value={state.customW}
                         min="150"
                         step="1"
                     />
@@ -780,7 +545,7 @@
                     <span>Height</span>
                     <input
                         type="number"
-                        bind:value={customH}
+                        bind:value={state.customH}
                         min="120"
                         step="1"
                     />
@@ -789,7 +554,7 @@
 
             <label class="field">
                 <span>Map Type</span>
-                <select bind:value={mapType}>
+                <select bind:value={state.mapType}>
                     {#each Object.entries(MAP_TYPES) as [value, label]}
                         <option {value}>{label}</option>
                     {/each}
@@ -800,7 +565,7 @@
         <div class="row rotate-row">
             <RotationSlider
                 label="Rotation"
-                bind:value={rotation}
+                bind:value={state.rotation}
                 showStepButtons={true}
                 stepSize={15}
                 onStepClick={rotateStep}
@@ -811,35 +576,38 @@
             <ExportControls
                 {map}
                 projectSnapshot={{
-                    mapTitle,
+                    mapTitle: state.mapTitle,
                     mapViewport,
-                    mapWidth,
-                    mapHeight,
+                    mapWidth: state.mapWidth,
+                    mapHeight: state.mapHeight,
                     bounds,
-                    rotation,
+                    rotation: state.rotation,
                     zoom,
-                    mapType,
+                    mapType: state.mapType,
                     center,
-                    homePosition,
-                    f3aZoneVisible: isF3AZoneVisible,
-                    f3aRotation,
-                    f3aBaseDistance,
-                    f3aColor,
+                    homePosition: state.homePosition,
+                    f3aZoneVisible: state.isF3AZoneVisible,
+                    f3aRotation: state.f3aRotation,
+                    f3aBaseDistance: state.f3aBaseDistance,
+                    f3aColor: state.f3aColor,
                     f3aOverlay:
-                        isF3AZoneVisible && f3aZoneGeometry
-                            ? { geometry: f3aZoneGeometry, color: f3aColor }
+                        state.isF3AZoneVisible && f3aZoneGeometry
+                            ? {
+                                  geometry: f3aZoneGeometry,
+                                  color: state.f3aColor,
+                              }
                             : null,
-                    selectedRunway,
+                    selectedRunway: state.selectedRunway,
                 }}
             />
         </div>
 
-        <EthosBoundsDisplay {bounds} {rotation} />
+        <EthosBoundsDisplay {bounds} rotation={state.rotation} />
     </section>
 
     <section class="workspace">
         <div class="map-column">
-            <div class="coords" style={`min-width:${mapWidth}px;`}>
+            <div class="coords" style={`min-width:${state.mapWidth}px;`}>
                 {#if isMeasureActive}
                     📏 BRG {measureBearing.toFixed(1)}° | REL {measureRelativeAngle.toFixed(
                         1,
@@ -855,7 +623,7 @@
                         —
                     {/if}
                 {:else}
-                    {#if homePosition}
+                    {#if state.homePosition}
                         <span
                             class="coords-lock"
                             title="Home position is locked">🔒</span
@@ -870,24 +638,27 @@
             <div
                 class="map-box"
                 class:measure-mode={isMeasureActive}
-                class:runway-pick-mode={isRunwayPickActive}
+                class:runway-pick-mode={state.isRunwayPickActive}
                 bind:this={mapViewport}
-                style={`width:${mapWidth}px;height:${mapHeight}px;`}
+                style={`width:${state.mapWidth}px;height:${state.mapHeight}px;`}
             >
                 <div class="map-surface" bind:this={mapContainer}></div>
-                <F3AZoneOverlay geometry={f3aZoneGeometry} color={f3aColor} />
+                <F3AZoneOverlay
+                    geometry={f3aZoneGeometry}
+                    color={state.f3aColor}
+                />
                 <RunwayOverlay
                     runway={projectedRunway}
                     pendingPoint={runwayPickStartScreen}
-                    isPicking={isRunwayPickActive}
-                    isEditing={isRunwayEditActive}
+                    isPicking={state.isRunwayPickActive}
+                    isEditing={state.isRunwayEditActive}
                     on:endpointdrag={handleEndpointDrag}
                 />
                 {#if homeScreenPoint}
                     <HomeCrosshairOverlay
                         screenPoint={homeScreenPoint}
-                        {mapWidth}
-                        {mapHeight}
+                        mapWidth={state.mapWidth}
+                        mapHeight={state.mapHeight}
                     />
                     <MeasureLineOverlay
                         isActive={isMeasureActive}
@@ -898,21 +669,21 @@
                     <MeasureLineOverlay
                         isActive={isMeasureActive}
                         startPoint={{
-                            x: mapWidth / 2,
-                            y: mapHeight / 2,
+                            x: state.mapWidth / 2,
+                            y: state.mapHeight / 2,
                         }}
                         targetPoint={measureTargetScreen}
                     />
                     <div class="crosshair hud-overlay"></div>
                 {/if}
                 <button
-                    class={`zoom-badge hud-overlay ${zoomLock ? "locked" : ""}`}
-                    on:click={() => (zoomLock = !zoomLock)}
-                    title={zoomLock
+                    class={`zoom-badge hud-overlay ${state.zoomLock ? "locked" : ""}`}
+                    on:click={() => (state.zoomLock = !state.zoomLock)}
+                    title={state.zoomLock
                         ? "Zoom locked — click to unlock"
                         : "Click to lock zoom"}
                 >
-                    {zoomLock ? "🔒 " : ""}Zoom: {zoom.toFixed(1)}
+                    {state.zoomLock ? "🔒 " : ""}Zoom: {zoom.toFixed(1)}
                 </button>
                 <button
                     class={`measure-btn hud-overlay ${isMeasureActive ? "active" : ""}`}
@@ -927,33 +698,14 @@
                 {/if}
             </div>
 
-            <SearchPanel {map} {mapWidth} />
+            <SearchPanel {map} mapWidth={state.mapWidth} />
         </div>
 
         <ToolsSidebar
-            {homePosition}
-            {isF3AZoneVisible}
-            bind:f3aRotation
-            bind:f3aBaseDistance
-            bind:f3aColor
-            {runwayDirs}
-            {selectedRunway}
-            {isRunwayPickActive}
-            {isRunwayEditActive}
-            {runwayStatus}
             isIOS={$isIOS}
             mapReady={!!map}
             on:sethome={setHomePosition}
-            on:clearhome={clearHomePosition}
-            on:togglef3a={toggleF3AZone}
-            on:resetf3arotation={resetF3ARotation}
-            on:wheel={(e) => handleRunwayWheel(e.detail)}
-            on:headingwheel={(e) => handleRunwayHeadingWheel(e.detail)}
-            on:toggleedit={toggleRunwayEdit}
-            on:rotate={(e) => rotateSelectedRunway(e.detail)}
             on:startpick={startRunwayPick}
-            on:cancelpick={cancelRunwayPick}
-            on:clear={clearRunwaySelection}
         />
     </section>
 </div>

@@ -1,81 +1,94 @@
 <script>
-    import { createEventDispatcher } from "svelte";
+    import { createEventDispatcher, getContext } from "svelte";
     import { normalizeBearing } from "../lib/geoUtils.js";
     import MouseWheelIcon from "./MouseWheelIcon.svelte";
 
-    export let selectedRunway = null;
-    export let isRunwayPickActive = false;
-    export let isRunwayEditActive = false;
-    export let runwayDirs = null;
-    export let runwayStatus = "Pick runway ends to define runway.";
+    const state = getContext("app");
+
+    // isIOS and mapReady still come from App (no map/device context in state)
     export let isIOS = false;
-    export let hasHome = false;
     export let mapReady = false;
 
+    // startpick still needs App.svelte (must stop measure tool first)
     const dispatch = createEventDispatcher();
 
-    function onWheel(event) {
-        dispatch("wheel", event);
+    function handleWheel(event) {
+        if (!state.selectedRunway) return;
+        event.preventDefault();
+        state.rotateSelectedRunway(event.deltaY > 0 ? -0.1 : 0.1);
     }
 
-    function onHeadingWheel(event) {
-        dispatch("headingwheel", event);
+    function handleHeadingWheel(event) {
+        if (!state.selectedRunway) return;
+        event.preventDefault();
+        event.stopPropagation();
+        state.rotateSelectedRunway(event.deltaY > 0 ? 0.1 : -0.1);
     }
 </script>
 
-<section class="runway-panel" on:wheel={onWheel} class:with-f3a={hasHome}>
+<section
+    class="runway-panel"
+    on:wheel={handleWheel}
+    class:with-f3a={!!state.homePosition}
+>
     <div class="runway-title-row">
         <h2>Runway</h2>
-        {#if selectedRunway}
+        {#if state.selectedRunway}
             <button
                 class="runway-edit-btn"
-                class:active={isRunwayEditActive}
-                on:click={() => dispatch("toggleedit")}>Edit</button
+                class:active={state.isRunwayEditActive}
+                on:click={() => state.toggleRunwayEdit()}>Edit</button
             >
         {/if}
     </div>
     <p class="runway-status">
-        {#if !selectedRunway}
-            {runwayStatus}
+        {#if !state.selectedRunway}
+            {state.runwayStatus}
         {:else if isIOS}
             <button
                 type="button"
                 class="ghost runway-step-btn runway-step-btn-left"
-                on:click={() => dispatch("rotate", -0.1)}
+                on:click={() => state.rotateSelectedRunway(-0.1)}
             >
                 ⟲ 0.1°
             </button>
-            <span class="runway-bearing" on:wheel={onHeadingWheel}
-                >RWY {normalizeBearing(selectedRunway.heading).toFixed(1)}°
+            <span class="runway-bearing" on:wheel={handleHeadingWheel}
+                >RWY {normalizeBearing(state.selectedRunway.heading).toFixed(
+                    1,
+                )}°
                 <MouseWheelIcon size={18} /></span
             >
             <button
                 type="button"
                 class="ghost runway-step-btn runway-step-btn-right"
-                on:click={() => dispatch("rotate", 0.1)}
+                on:click={() => state.rotateSelectedRunway(0.1)}
             >
                 0.1° ⟳
             </button>
         {:else}
-            <span class="runway-bearing" on:wheel={onHeadingWheel}
-                >RWY {normalizeBearing(selectedRunway.heading).toFixed(1)}°
+            <span class="runway-bearing" on:wheel={handleHeadingWheel}
+                >RWY {normalizeBearing(state.selectedRunway.heading).toFixed(
+                    1,
+                )}°
                 <MouseWheelIcon size={18} /></span
             >
         {/if}
     </p>
     <div class="home-actions runway-actions">
         <button
-            class={isRunwayPickActive || selectedRunway ? "warn" : "ghost"}
+            class={state.isRunwayPickActive || state.selectedRunway
+                ? "warn"
+                : "ghost"}
             disabled={!mapReady}
             on:click={() =>
-                isRunwayPickActive
-                    ? dispatch("cancelpick")
-                    : selectedRunway
-                      ? dispatch("clear")
+                state.isRunwayPickActive
+                    ? state.cancelRunwayPick()
+                    : state.selectedRunway
+                      ? state.clearRunwaySelection()
                       : dispatch("startpick")}
-            >{isRunwayPickActive
+            >{state.isRunwayPickActive
                 ? "Cancel Pick"
-                : selectedRunway
+                : state.selectedRunway
                   ? "Remove runway"
                   : "Pick Ends"}</button
         >

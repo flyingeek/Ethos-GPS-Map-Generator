@@ -1,54 +1,14 @@
 <script>
-    import { createEventDispatcher } from "svelte";
     import F3ATools from "./F3ATools.svelte";
     import RunwayTools from "./RunwayTools.svelte";
 
-    export let homePosition = null;
-    export let isF3AZoneVisible = false;
-    export let f3aRotation = 0;
-    export let f3aBaseDistance = 150;
-    export let f3aColor = "#ffffff";
-    export let runwayDirs = null;
-    export let selectedRunway = null;
-    export let isRunwayPickActive = false;
-    export let isRunwayEditActive = false;
-    export let runwayStatus = "Pick runway ends to define runway.";
     export let isIOS = false;
     export let mapReady = false;
-
-    const dispatch = createEventDispatcher();
 </script>
 
 <aside class="panel guide">
-    <RunwayTools
-        {selectedRunway}
-        {isRunwayPickActive}
-        {isRunwayEditActive}
-        {runwayDirs}
-        {runwayStatus}
-        {isIOS}
-        hasHome={!!homePosition}
-        {mapReady}
-        on:wheel
-        on:headingwheel
-        on:toggleedit
-        on:rotate
-        on:startpick
-        on:cancelpick
-        on:clear
-    />
-    <F3ATools
-        {homePosition}
-        {isF3AZoneVisible}
-        bind:f3aRotation
-        bind:f3aBaseDistance
-        bind:f3aColor
-        {runwayDirs}
-        on:sethome
-        on:clearhome
-        on:togglef3a
-        on:resetf3arotation
-    />
+    <RunwayTools {isIOS} {mapReady} on:startpick />
+    <F3ATools on:sethome />
 </aside>
 
 <style>
