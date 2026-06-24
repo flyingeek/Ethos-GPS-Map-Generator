@@ -6,16 +6,22 @@
     } from "../lib/exportActions.js";
     import { cleanBaseName } from "../lib/exportBlobs.js";
 
-    export let projectSnapshot = {};
-    export let map = null;
 
     const SD_BITMAPS_PATH = "";
     const SD_METADATA_PATH = "";
 
-    let sdHandle = null;
-    let isSdLinked = false;
-    let syncMessage = "Export to folder";
-    export let supportsSdSync = false;
+    let sdHandle = $state(null);
+    let isSdLinked = $state(false);
+    let syncMessage = $state("Export to folder");
+    /**
+     * @typedef {Object} Props
+     * @property {any} [projectSnapshot]
+     * @property {any} [map]
+     * @property {boolean} [supportsSdSync]
+     */
+
+    /** @type {Props} */
+    let { projectSnapshot = {}, map = null, supportsSdSync = $bindable(false) } = $props();
 
     onMount(() => {
         supportsSdSync = typeof window.showDirectoryPicker === "function";
@@ -126,12 +132,12 @@
 <div class="action-controls">
     {#if supportsSdSync}
         <div class="sync-group">
-            <button class="ok" on:click={handleSync}>{syncMessage}</button>
+            <button class="ok" onclick={handleSync}>{syncMessage}</button>
             {#if isSdLinked && sdHandle}
                 <button
                     type="button"
                     class="sd-status-link"
-                    on:click={linkSdCard}
+                    onclick={linkSdCard}
                     title="Change the folder to save to"
                 >
                     📁 {sdHandle.name} (change)
@@ -139,7 +145,7 @@
             {/if}
         </div>
     {/if}
-    <button class="ghost" on:click={handleDownloadZip}>Download ZIP</button>
+    <button class="ghost" onclick={handleDownloadZip}>Download ZIP</button>
 </div>
 
 <style>

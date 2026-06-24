@@ -1,3 +1,5 @@
+<!-- @migration-task Error while migrating Svelte code: can't migrate `const state = getContext("app");` to `$state` because there's a variable named state.
+     Rename the variable and try again or migrate by hand. -->
 <script>
     import { createEventDispatcher, getContext } from "svelte";
     import { toDms } from "../lib/geoUtils.js";

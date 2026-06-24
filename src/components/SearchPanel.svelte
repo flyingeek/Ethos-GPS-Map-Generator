@@ -1,11 +1,10 @@
 <script>
-    export let map;
-    export let mapWidth;
+    let { map, mapWidth } = $props();
 
-    let searchQuery = "";
-    let searchBusy = false;
-    let searchMessage = "";
-    let searchResults = [];
+    let searchQuery = $state("");
+    let searchBusy = $state(false);
+    let searchMessage = $state("");
+    let searchResults = $state([]);
 
     async function searchPlace() {
         const query = searchQuery.trim();
@@ -89,14 +88,14 @@
                 type="text"
                 bind:value={searchQuery}
                 placeholder="Airport, city or coordinates"
-                on:keydown={(event) => {
+                onkeydown={(event) => {
                     if (event.key === "Enter") {
                         searchPlace();
                     }
                 }}
             />
         </label>
-        <button class="search-btn" on:click={searchPlace} disabled={searchBusy}
+        <button class="search-btn" onclick={searchPlace} disabled={searchBusy}
             >{searchBusy ? "Searching..." : "Search"}</button
         >
     </div>
@@ -113,7 +112,7 @@
                 <button
                     class="result-item"
                     type="button"
-                    on:click={() => selectSearchResult(result)}
+                    onclick={() => selectSearchResult(result)}
                     title={result.display}
                 >
                     <span class="result-index">#{index + 1}</span>

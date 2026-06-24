@@ -1,19 +1,25 @@
 <script>
     import { toDms } from "../lib/geoUtils.js";
 
-    export let bounds = { north: 0, south: 0, west: 0, east: 0 };
-    export let rotation = 0;
+    /**
+     * @typedef {Object} Props
+     * @property {any} [bounds]
+     * @property {number} [rotation]
+     */
+
+    /** @type {Props} */
+    let { bounds = { north: 0, south: 0, west: 0, east: 0 }, rotation = 0 } = $props();
 
     const WIDGET_URL = "https://github.com/flyingeek/ethos-gps-tracker";
     const WIDGET_NAME = "GPS Tracker";
 
-    let isBoundsOpen = false;
+    let isBoundsOpen = $state(false);
 </script>
 
 <button
     class="bounds-info bounds-info-toggle"
     class:bounds-info-static={rotation !== 0}
-    on:click={() => {
+    onclick={() => {
         if (rotation === 0) isBoundsOpen = !isBoundsOpen;
     }}
 >

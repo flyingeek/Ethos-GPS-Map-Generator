@@ -1,8 +1,15 @@
 <script>
+    /**
+     * @typedef {Object} Props
+     * @property {import('svelte').Snippet} [children]
+     */
+
+    /** @type {Props} */
+    let { children } = $props();
 </script>
 
 <svg class="zone-overlay hud-overlay">
-    <slot />
+    {@render children?.()}
 </svg>
 
 <style>

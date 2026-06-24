@@ -2,17 +2,17 @@
     import { createEventDispatcher, onMount } from "svelte";
     import { parseLuaProject } from "../lib/exportBlobs.js";
 
-    export let projectState;
+    let { projectState } = $props();
 
     const dispatch = createEventDispatcher();
     const MAX_SAVED_PROJECTS = 10;
 
-    let savedProjects = [];
-    let selectedSaveIndex = -1;
-    let saveNotice = "";
+    let savedProjects = $state([]);
+    let selectedSaveIndex = $state(-1);
+    let saveNotice = $state("");
     let saveNoticeTimer = null;
-    let isDragOver = false;
-    let selectorPulse = false;
+    let isDragOver = $state(false);
+    let selectorPulse = $state(false);
     let selectorPulseTimer = null;
 
     onMount(() => {
@@ -283,14 +283,14 @@
         class:drag-over={isDragOver}
         role="button"
         tabindex="-1"
-        on:dragover={handleDragOver}
-        on:dragleave={handleDragLeave}
-        on:drop={handleDrop}
+        ondragover={handleDragOver}
+        ondragleave={handleDragLeave}
+        ondrop={handleDrop}
     >
         <button
             class="ghost"
             disabled={selectedSaveIndex < 0}
-            on:click={loadSelectedProject}
+            onclick={loadSelectedProject}
             title="Load selected project — or drop a .lua file here"
             >Load</button
         >
@@ -298,10 +298,10 @@
     <button
         class="ghost del-btn"
         disabled={selectedSaveIndex < 0}
-        on:click={deleteSavedProject}
+        onclick={deleteSavedProject}
         title="Delete selected project">🗑</button
     >
-    <button class="ok" on:click={saveProject} title="Save current project"
+    <button class="ok" onclick={saveProject} title="Save current project"
         >Save</button
     >
     <span class={`save-notice ${saveNotice ? "visible" : ""}`}>

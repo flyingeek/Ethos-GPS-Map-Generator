@@ -1,9 +1,15 @@
 <script>
     import OverlaySvg from "./OverlaySvg.svelte";
 
-    export let isActive = false;
-    export let startPoint = null;
-    export let targetPoint = null;
+    /**
+     * @typedef {Object} Props
+     * @property {boolean} [isActive]
+     * @property {any} [startPoint]
+     * @property {any} [targetPoint]
+     */
+
+    /** @type {Props} */
+    let { isActive = false, startPoint = null, targetPoint = null } = $props();
 </script>
 
 {#if isActive && startPoint && targetPoint}

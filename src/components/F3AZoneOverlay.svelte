@@ -1,11 +1,17 @@
 <script>
     import OverlaySvg from "./OverlaySvg.svelte";
 
-    export let geometry = null;
-    export let color;
+    /**
+     * @typedef {Object} Props
+     * @property {any} [geometry]
+     * @property {any} color
+     */
 
-    $: rgb = color;
-    $: shadow = `drop-shadow(0 0 4px ${color}73)`;
+    /** @type {Props} */
+    let { geometry = null, color } = $props();
+
+    let rgb = $derived(color);
+    let shadow = $derived(`drop-shadow(0 0 4px ${color}73)`);
 </script>
 
 {#if geometry}

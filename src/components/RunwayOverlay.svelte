@@ -1,50 +1,87 @@
 <script>
+    import { run } from 'svelte/legacy';
+
     import { createEventDispatcher } from "svelte";
     import OverlaySvg from "./OverlaySvg.svelte";
     import { normalizeBearing } from "../lib/geoUtils.js";
 
-    export let runway = null;
-    export let pendingPoint = null;
-    export let isPicking = false;
-    export let isEditing = false;
+    /**
+     * @typedef {Object} Props
+     * @property {any} [runway]
+     * @property {any} [pendingPoint]
+     * @property {boolean} [isPicking]
+     * @property {boolean} [isEditing]
+     */
+
+    /** @type {Props} */
+    let {
+        runway = null,
+        pendingPoint = null,
+        isPicking = false,
+        isEditing = false
+    } = $props();
 
     const dispatch = createEventDispatcher();
 
-    let hasRunway = false;
-    let width = 18;
-    let dx = 0;
-    let dy = 0;
-    let length = 1;
-    let nx = 0;
-    let ny = 0;
-    let halfWidth = 9;
-    let polygon = "";
-    let labelX = 0;
-    let labelY = 0;
-    let label = "";
-    let dragging = null; // 'first' | 'last' | null
+    let hasRunway = $state(false);
+    let width = $state(18);
+    let dx = $state(0);
+    let dy = $state(0);
+    let length = $state(1);
+    let nx = $state(0);
+    let ny = $state(0);
+    let halfWidth = $state(9);
+    let polygon = $state("");
+    let labelX = $state(0);
+    let labelY = $state(0);
+    let label = $state("");
+    let dragging = $state(null); // 'first' | 'last' | null
 
-    $: hasRunway = Boolean(runway?.firstPoint && runway?.lastPoint);
-    $: width = Math.max(10, Math.min(32, runway?.stripWidth ?? 18));
-    $: dx = hasRunway ? runway.lastPoint.x - runway.firstPoint.x : 0;
-    $: dy = hasRunway ? runway.lastPoint.y - runway.firstPoint.y : 0;
-    $: length = Math.hypot(dx, dy) || 1;
-    $: nx = -dy / length;
-    $: ny = dx / length;
-    $: halfWidth = width / 2;
-    $: polygon = hasRunway
-        ? [
-              `${runway.firstPoint.x + nx * halfWidth},${runway.firstPoint.y + ny * halfWidth}`,
-              `${runway.lastPoint.x + nx * halfWidth},${runway.lastPoint.y + ny * halfWidth}`,
-              `${runway.lastPoint.x - nx * halfWidth},${runway.lastPoint.y - ny * halfWidth}`,
-              `${runway.firstPoint.x - nx * halfWidth},${runway.firstPoint.y - ny * halfWidth}`,
-          ].join(" ")
-        : "";
-    $: labelX = hasRunway ? runway.centerPoint.x + nx * (halfWidth + 12) : 0;
-    $: labelY = hasRunway ? runway.centerPoint.y + ny * (halfWidth + 12) : 0;
-    $: label = hasRunway
-        ? `${normalizeBearing(runway.heading).toFixed(1)}° / ${runway.lengthM.toFixed(0)}m`
-        : "";
+    run(() => {
+        hasRunway = Boolean(runway?.firstPoint && runway?.lastPoint);
+    });
+    run(() => {
+        width = Math.max(10, Math.min(32, runway?.stripWidth ?? 18));
+    });
+    run(() => {
+        dx = hasRunway ? runway.lastPoint.x - runway.firstPoint.x : 0;
+    });
+    run(() => {
+        dy = hasRunway ? runway.lastPoint.y - runway.firstPoint.y : 0;
+    });
+    run(() => {
+        length = Math.hypot(dx, dy) || 1;
+    });
+    run(() => {
+        nx = -dy / length;
+    });
+    run(() => {
+        ny = dx / length;
+    });
+    run(() => {
+        halfWidth = width / 2;
+    });
+    run(() => {
+        polygon = hasRunway
+            ? [
+                  `${runway.firstPoint.x + nx * halfWidth},${runway.firstPoint.y + ny * halfWidth}`,
+                  `${runway.lastPoint.x + nx * halfWidth},${runway.lastPoint.y + ny * halfWidth}`,
+                  `${runway.lastPoint.x - nx * halfWidth},${runway.lastPoint.y - ny * halfWidth}`,
+                  `${runway.firstPoint.x - nx * halfWidth},${runway.firstPoint.y - ny * halfWidth}`,
+              ].join(" ")
+            : "";
+    });
+    run(() => {
+        labelX = hasRunway ? runway.centerPoint.x + nx * (halfWidth + 12) : 0;
+    });
+    run(() => {
+        labelY = hasRunway ? runway.centerPoint.y + ny * (halfWidth + 12) : 0;
+    });
+    run(() => {
+        label = hasRunway
+            ? `${normalizeBearing(runway.heading).toFixed(1)}° / ${runway.lengthM.toFixed(0)}m`
+            : "";
+    });
 
     function onPointerDown(e, endpoint) {
         e.preventDefault();
@@ -105,10 +142,10 @@
                     cx={runway.firstPoint.x}
                     cy={runway.firstPoint.y}
                     r="14"
-                    on:pointerdown={(e) => onPointerDown(e, "first")}
-                    on:pointermove={onPointerMove}
-                    on:pointerup={onPointerUp}
-                    on:pointercancel={onPointerUp}
+                    onpointerdown={(e) => onPointerDown(e, "first")}
+                    onpointermove={onPointerMove}
+                    onpointerup={onPointerUp}
+                    onpointercancel={onPointerUp}
                 ></circle>
                 <circle
                     role="button"
@@ -118,10 +155,10 @@
                     cx={runway.lastPoint.x}
                     cy={runway.lastPoint.y}
                     r="14"
-                    on:pointerdown={(e) => onPointerDown(e, "last")}
-                    on:pointermove={onPointerMove}
-                    on:pointerup={onPointerUp}
-                    on:pointercancel={onPointerUp}
+                    onpointerdown={(e) => onPointerDown(e, "last")}
+                    onpointermove={onPointerMove}
+                    onpointerup={onPointerUp}
+                    onpointercancel={onPointerUp}
                 ></circle>
             {/if}
         {/if}

@@ -1,29 +1,50 @@
 <script>
+    import { preventDefault } from "svelte/legacy";
+
     import { normalizeAngle } from "../lib/geoUtils.js";
     import MouseWheelIcon from "./MouseWheelIcon.svelte";
     import { isIOS } from "../lib/deviceInfo.js";
 
-    export let value = 0;
-    export let label = "Rotation";
-    export let disabled = false;
-    export let showStepButtons = false;
-    export let showResetButton = true;
-    export let stepSize = 15;
-    export let onStepClick = null;
-    export let onReset = null;
-    export let inlineLabel = true;
-    export let horizontalSliderWidth = 280;
-    export let horizontalWrap = true;
-    export let rtl = false;
-    export let forceStepButtonsOnTouch = false;
-    export let twoLineSteps = false;
+    /**
+     * @typedef {Object} Props
+     * @property {number} [value]
+     * @property {string} [label]
+     * @property {boolean} [disabled]
+     * @property {boolean} [showStepButtons]
+     * @property {boolean} [showResetButton]
+     * @property {number} [stepSize]
+     * @property {any} [onStepClick]
+     * @property {any} [onReset]
+     * @property {boolean} [inlineLabel]
+     * @property {number} [horizontalSliderWidth]
+     * @property {boolean} [horizontalWrap]
+     * @property {boolean} [rtl]
+     * @property {boolean} [forceStepButtonsOnTouch]
+     * @property {boolean} [twoLineSteps]
+     */
 
-    let effectiveStepSize = stepSize;
-    let effectiveShowStepButtons = showStepButtons;
+    /** @type {Props} */
+    let {
+        value = $bindable(0),
+        label = "Rotation",
+        disabled = false,
+        showStepButtons = false,
+        showResetButton = true,
+        stepSize = 15,
+        onStepClick = null,
+        onReset = null,
+        inlineLabel = true,
+        horizontalSliderWidth = 280,
+        horizontalWrap = true,
+        rtl = false,
+        forceStepButtonsOnTouch = false,
+        twoLineSteps = false,
+    } = $props();
 
-    $: effectiveStepSize = $isIOS ? 0.1 : stepSize;
-    $: effectiveShowStepButtons =
-        showStepButtons || (forceStepButtonsOnTouch && $isIOS);
+    let effectiveStepSize = $derived($isIOS ? 0.1 : stepSize);
+    let effectiveShowStepButtons = $derived(
+        showStepButtons || (forceStepButtonsOnTouch && $isIOS),
+    );
 
     function handleStep(delta) {
         if (onStepClick) {
@@ -104,17 +125,17 @@
                 <button
                     type="button"
                     class="step-left"
-                    on:click={() =>
+                    onclick={() =>
                         handleStepClick(
                             rtl ? effectiveStepSize : -effectiveStepSize,
                         )}
-                    on:pointerdown={() =>
+                    onpointerdown={() =>
                         startAutoRepeat(
                             rtl ? effectiveStepSize : -effectiveStepSize,
                         )}
-                    on:pointerup={stopAutoRepeat}
-                    on:pointercancel={stopAutoRepeat}
-                    on:pointerleave={stopAutoRepeat}
+                    onpointerup={stopAutoRepeat}
+                    onpointercancel={stopAutoRepeat}
+                    onpointerleave={stopAutoRepeat}
                     {disabled}
                 >
                     ⟲ {effectiveStepSize.toFixed(1)}°
@@ -133,17 +154,17 @@
                 <button
                     type="button"
                     class="step-right"
-                    on:click={() =>
+                    onclick={() =>
                         handleStepClick(
                             rtl ? -effectiveStepSize : effectiveStepSize,
                         )}
-                    on:pointerdown={() =>
+                    onpointerdown={() =>
                         startAutoRepeat(
                             rtl ? -effectiveStepSize : effectiveStepSize,
                         )}
-                    on:pointerup={stopAutoRepeat}
-                    on:pointercancel={stopAutoRepeat}
-                    on:pointerleave={stopAutoRepeat}
+                    onpointerup={stopAutoRepeat}
+                    onpointercancel={stopAutoRepeat}
+                    onpointerleave={stopAutoRepeat}
                     {disabled}
                 >
                     {effectiveStepSize.toFixed(1)}° ⟳
@@ -153,7 +174,7 @@
                 <button
                     type="button"
                     class="ghost"
-                    on:click={handleReset}
+                    onclick={handleReset}
                     {disabled}
                 >
                     Reset
@@ -162,7 +183,7 @@
             <span
                 class="bearing"
                 title="Scroll to adjust by 0.1°"
-                on:wheel|preventDefault={handleWheel}
+                onwheel={preventDefault(handleWheel)}
             >
                 {Number(Math.abs(value)).toFixed(1)}°{value > 0
                     ? "E"

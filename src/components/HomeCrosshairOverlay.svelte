@@ -1,24 +1,32 @@
 <script>
+    import { run } from 'svelte/legacy';
+
     import OverlaySvg from "./OverlaySvg.svelte";
 
-    export let screenPoint = null;
-    export let mapWidth = 800;
-    export let mapHeight = 480;
+    /**
+     * @typedef {Object} Props
+     * @property {any} [screenPoint]
+     * @property {number} [mapWidth]
+     * @property {number} [mapHeight]
+     */
+
+    /** @type {Props} */
+    let { screenPoint = null, mapWidth = 800, mapHeight = 480 } = $props();
 
     const SNAP_THRESHOLD = 12;
 
-    $: snapV =
-        screenPoint && Math.abs(screenPoint.x - mapWidth / 2) < SNAP_THRESHOLD;
-    $: snapH =
-        screenPoint && Math.abs(screenPoint.y - mapHeight / 2) < SNAP_THRESHOLD;
+    let snapV =
+        $derived(screenPoint && Math.abs(screenPoint.x - mapWidth / 2) < SNAP_THRESHOLD);
+    let snapH =
+        $derived(screenPoint && Math.abs(screenPoint.y - mapHeight / 2) < SNAP_THRESHOLD);
 
-    $: rx = snapV ? mapWidth / 2 : screenPoint?.x;
-    $: ry = snapH ? mapHeight / 2 : screenPoint?.y;
+    let rx = $derived(snapV ? mapWidth / 2 : screenPoint?.x);
+    let ry = $derived(snapH ? mapHeight / 2 : screenPoint?.y);
 
-    let effectTimeout;
-    let showSnapEffect = false;
+    let effectTimeout = $state();
+    let showSnapEffect = $state(false);
 
-    $: {
+    run(() => {
         // Depend on screenPoint directly to reset timeout continuously while moving inside the zone
         const _trigger = screenPoint;
         const isSnapped = snapV || snapH;
@@ -33,7 +41,7 @@
             showSnapEffect = false;
             clearTimeout(effectTimeout);
         }
-    }
+    });
 </script>
 
 {#if screenPoint}

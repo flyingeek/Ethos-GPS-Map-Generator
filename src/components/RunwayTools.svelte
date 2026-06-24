@@ -5,9 +5,15 @@
 
     const state = getContext("app");
 
-    // isIOS and mapReady still come from App (no map/device context in state)
-    export let isIOS = false;
-    export let mapReady = false;
+    
+    /**
+     * @typedef {Object} Props
+     * @property {boolean} [isIOS] - isIOS and mapReady still come from App (no map/device context in state)
+     * @property {boolean} [mapReady]
+     */
+
+    /** @type {Props} */
+    let { isIOS = false, mapReady = false } = $props();
 
     // startpick still needs App.svelte (must stop measure tool first)
     const dispatch = createEventDispatcher();
@@ -28,7 +34,7 @@
 
 <section
     class="runway-panel"
-    on:wheel={handleWheel}
+    onwheel={handleWheel}
     class:with-f3a={!!state.homePosition}
 >
     <div class="runway-title-row">
@@ -37,7 +43,7 @@
             <button
                 class="runway-edit-btn"
                 class:active={state.isRunwayEditActive}
-                on:click={() => state.toggleRunwayEdit()}>Edit</button
+                onclick={() => state.toggleRunwayEdit()}>Edit</button
             >
         {/if}
     </div>
@@ -48,11 +54,11 @@
             <button
                 type="button"
                 class="ghost runway-step-btn runway-step-btn-left"
-                on:click={() => state.rotateSelectedRunway(-0.1)}
+                onclick={() => state.rotateSelectedRunway(-0.1)}
             >
                 ⟲ 0.1°
             </button>
-            <span class="runway-bearing" on:wheel={handleHeadingWheel}
+            <span class="runway-bearing" onwheel={handleHeadingWheel}
                 >RWY {normalizeBearing(state.selectedRunway.heading).toFixed(
                     1,
                 )}°
@@ -61,12 +67,12 @@
             <button
                 type="button"
                 class="ghost runway-step-btn runway-step-btn-right"
-                on:click={() => state.rotateSelectedRunway(0.1)}
+                onclick={() => state.rotateSelectedRunway(0.1)}
             >
                 0.1° ⟳
             </button>
         {:else}
-            <span class="runway-bearing" on:wheel={handleHeadingWheel}
+            <span class="runway-bearing" onwheel={handleHeadingWheel}
                 >RWY {normalizeBearing(state.selectedRunway.heading).toFixed(
                     1,
                 )}°
@@ -80,7 +86,7 @@
                 ? "warn"
                 : "ghost"}
             disabled={!mapReady}
-            on:click={() =>
+            onclick={() =>
                 state.isRunwayPickActive
                     ? state.cancelRunwayPick()
                     : state.selectedRunway

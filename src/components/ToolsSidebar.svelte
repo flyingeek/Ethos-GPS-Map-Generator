@@ -2,8 +2,14 @@
     import F3ATools from "./F3ATools.svelte";
     import RunwayTools from "./RunwayTools.svelte";
 
-    export let isIOS = false;
-    export let mapReady = false;
+    /**
+     * @typedef {Object} Props
+     * @property {boolean} [isIOS]
+     * @property {boolean} [mapReady]
+     */
+
+    /** @type {Props} */
+    let { isIOS = false, mapReady = false } = $props();
 </script>
 
 <aside class="panel guide">
