@@ -1,5 +1,11 @@
 import { toDms, normalizeBearing, calculateF3AZone } from "./geoUtils.js";
 
+export function cleanBaseName(mapTitle) {
+    return (mapTitle.trim() || "EthosMap")
+        .replace(/[^a-zA-Z0-9]/g, "_")
+        .slice(0, 24);
+}
+
 export function getViewportCorners(map) {
     if (!map) return null;
 

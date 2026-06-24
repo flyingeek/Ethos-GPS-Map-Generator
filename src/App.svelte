@@ -2,20 +2,11 @@
     import { onMount } from "svelte";
     import { isIOS } from "./lib/deviceInfo.js";
     import { buildRasterStyle, MAP_TYPES } from "./mapStyles.js";
-    import {
-        normalizeAngle,
-        normalizeBearing,
-        calculateMeasureState,
-        toDms,
-    } from "./lib/geoUtils.js";
+    import { normalizeAngle, calculateMeasureState } from "./lib/geoUtils.js";
     import {
         projectLngLat,
         projectF3AZoneGeometry,
     } from "./lib/overlayProjection.js";
-    import {
-        createExportArtifacts,
-        downloadFile,
-    } from "./lib/exportActions.js";
     import {
         buildRunwayFromScreen,
         projectRunway,
@@ -24,12 +15,15 @@
     import ProjectShelf from "./components/ProjectShelf.svelte";
     import SearchPanel from "./components/SearchPanel.svelte";
     import RotationSlider from "./components/RotationSlider.svelte";
-    import MouseWheelIcon from "./components/MouseWheelIcon.svelte";
     import F3AZoneOverlay from "./components/F3AZoneOverlay.svelte";
     import HomeCrosshairOverlay from "./components/HomeCrosshairOverlay.svelte";
     import MeasureLineOverlay from "./components/MeasureLineOverlay.svelte";
     import RunwayOverlay from "./components/RunwayOverlay.svelte";
+    import EthosBoundsDisplay from "./components/EthosBoundsDisplay.svelte";
+    import ExportControls from "./components/ExportControls.svelte";
+    import ToolsSidebar from "./components/ToolsSidebar.svelte";
     import ethosLogoUrl from "../ethos logo.png";
+    import { ensureMapLibreApi } from "./lib/mapLoader.js";
 
     let map;
     let mapContainer;
@@ -42,11 +36,6 @@
     let mapType = "y";
     let zoomLock = false;
     let rotation = 42.5;
-
-    let sdHandle = null;
-    let isSdLinked = false;
-    let syncMessage = "Export to folder";
-    let supportsSdSync = false;
 
     let bounds = { north: 0, south: 0, west: 0, east: 0 };
     let center = { lat: 44.71607983566827, lng: -0.7165001920591294 };
@@ -63,7 +52,6 @@
     let homePosition = { lat: 44.714409685877825, lng: -0.7168534611050745 };
     let homeScreenPoint = null;
     let isF3AZoneVisible = true;
-    let isBoundsOpen = false;
     let f3aRotation = 42.5;
     let f3aBaseDistance = 150;
     const f3aDefaultColor = "#ffffff";
@@ -174,111 +162,14 @@
         }
     }
 
-    const MAPLIBRE_VERSION = "5.1.1";
-    const MAPLIBRE_CSS_URL = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`;
-    const MAPLIBRE_JS_URL = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js`;
-    const SD_BITMAPS_PATH = "";
-    const SD_METADATA_PATH = "";
-    const WIDGET_URL = "https://github.com/flyingeek/ethos-gps-tracker";
-    const WIDGET_NAME = "GPS Tracker";
-
     let maplibreglApi = null;
-
-    function ensureMapLibreCss() {
-        if (
-            document.querySelector(
-                `link[data-maplibre-css="${MAPLIBRE_VERSION}"]`,
-            )
-        ) {
-            return;
-        }
-
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.href = MAPLIBRE_CSS_URL;
-        link.setAttribute("data-maplibre-css", MAPLIBRE_VERSION);
-        document.head.appendChild(link);
-    }
-
-    async function ensureMapLibreJs() {
-        if (window.maplibregl) {
-            return window.maplibregl;
-        }
-
-        const existing = document.querySelector(
-            `script[data-maplibre-js="${MAPLIBRE_VERSION}"]`,
-        );
-
-        if (existing) {
-            await new Promise((resolve, reject) => {
-                if (window.maplibregl) {
-                    resolve();
-                    return;
-                }
-                existing.addEventListener("load", () => resolve(), {
-                    once: true,
-                });
-                existing.addEventListener(
-                    "error",
-                    () => reject(new Error("Failed to load MapLibre script.")),
-                    { once: true },
-                );
-            });
-            return window.maplibregl;
-        }
-
-        const script = document.createElement("script");
-        script.src = MAPLIBRE_JS_URL;
-        script.defer = true;
-        script.setAttribute("data-maplibre-js", MAPLIBRE_VERSION);
-
-        await new Promise((resolve, reject) => {
-            script.addEventListener("load", () => resolve(), { once: true });
-            script.addEventListener(
-                "error",
-                () => reject(new Error("Failed to load MapLibre script.")),
-                { once: true },
-            );
-            document.head.appendChild(script);
-        });
-
-        return window.maplibregl;
-    }
-
-    async function ensureMapLibreFromCdn() {
-        ensureMapLibreCss();
-        maplibreglApi = await ensureMapLibreJs();
-    }
-
-    async function ensureMapLibreFromLocal() {
-        const [{ default: localMaplibre }] = await Promise.all([
-            import("maplibre-gl"),
-            import("maplibre-gl/dist/maplibre-gl.css"),
-        ]);
-        maplibreglApi = localMaplibre;
-    }
-
-    async function ensureMapLibreApi() {
-        try {
-            await ensureMapLibreFromCdn();
-        } catch (error) {
-            console.warn(
-                "MapLibre CDN unavailable, falling back to local package.",
-                error,
-            );
-            await ensureMapLibreFromLocal();
-        }
-    }
 
     onMount(() => {
         let cancelled = false;
-        let watchdog;
-
-        supportsSdSync = typeof window.showDirectoryPicker === "function";
 
         const init = async () => {
             try {
-                await ensureMapLibreApi();
+                maplibreglApi = await ensureMapLibreApi();
                 if (cancelled || !maplibreglApi) return;
 
                 map = new maplibreglApi.Map({
@@ -449,23 +340,8 @@
 
         init();
 
-        watchdog = setInterval(async () => {
-            if (!sdHandle) {
-                isSdLinked = false;
-                return;
-            }
-            try {
-                const iterator = sdHandle.entries();
-                await iterator.next();
-            } catch (error) {
-                sdHandle = null;
-                isSdLinked = false;
-            }
-        }, 1800);
-
         return () => {
             cancelled = true;
-            clearInterval(watchdog);
             if (map) {
                 map.remove();
             }
@@ -748,150 +624,6 @@
         refreshProjectedOverlays();
     }
 
-    function cleanBaseName() {
-        return (mapTitle.trim() || "EthosMap")
-            .replace(/[^a-zA-Z0-9]/g, "_")
-            .slice(0, 24);
-    }
-
-    async function handleDownloadZip() {
-        const baseName = cleanBaseName();
-        const { bmpBlob /*, jsonBlob*/, luaBlob /*, metaBlob*/ } =
-            await createExportArtifacts({
-                map,
-                mapViewport,
-                mapWidth,
-                mapHeight,
-                bounds,
-                rotation,
-                zoom,
-                baseName,
-                mapType,
-                center,
-                homePosition,
-                f3aZoneVisible: isF3AZoneVisible,
-                f3aRotation,
-                f3aBaseDistance,
-                f3aColor,
-                f3aOverlay:
-                    isF3AZoneVisible && f3aZoneGeometry
-                        ? { geometry: f3aZoneGeometry, color: f3aColor }
-                        : null,
-                selectedRunway,
-            });
-
-        const { default: JSZip } = await import("jszip");
-        const zip = new JSZip();
-        zip.file(`${baseName}.bmp`, bmpBlob);
-        //zip.file(`${baseName}.json`, jsonBlob);
-        zip.file(`${baseName}.lua`, luaBlob);
-        //zip.file(`${baseName}_metadata.txt`, metaBlob);
-
-        const outBlob = await zip.generateAsync({ type: "blob" });
-        downloadFile(outBlob, `${baseName}.zip`);
-    }
-
-    async function linkSdCard() {
-        if (!supportsSdSync) return;
-        try {
-            sdHandle = await window.showDirectoryPicker();
-            isSdLinked = true;
-        } catch (error) {
-            if (error?.name !== "AbortError") {
-                sdHandle = null;
-                isSdLinked = false;
-            }
-        }
-    }
-
-    async function saveToSd(blob, folderPath, fileName) {
-        if (!sdHandle) return false;
-
-        try {
-            let currentHandle = sdHandle;
-            const folders = folderPath.split("/").filter(Boolean);
-            for (const folder of folders) {
-                currentHandle = await currentHandle.getDirectoryHandle(folder, {
-                    create: true,
-                });
-            }
-
-            const fileHandle = await currentHandle.getFileHandle(fileName, {
-                create: true,
-            });
-            const writable = await fileHandle.createWritable();
-            await writable.write(blob);
-            await writable.close();
-            return true;
-        } catch (error) {
-            return false;
-        }
-    }
-
-    async function handleSync() {
-        if (!supportsSdSync) return;
-        if (!sdHandle) {
-            await linkSdCard();
-        }
-
-        if (!sdHandle) {
-            return;
-        }
-
-        const baseName = cleanBaseName();
-
-        syncMessage = "Syncing...";
-        const { bmpBlob /*, jsonBlob, */, luaBlob /*, metaBlob */ } =
-            await createExportArtifacts({
-                map,
-                mapViewport,
-                mapWidth,
-                mapHeight,
-                bounds,
-                rotation,
-                zoom,
-                baseName,
-                mapType,
-                center,
-                homePosition,
-                f3aZoneVisible: isF3AZoneVisible,
-                f3aRotation,
-                f3aBaseDistance,
-                f3aColor,
-                f3aOverlay:
-                    isF3AZoneVisible && f3aZoneGeometry
-                        ? { geometry: f3aZoneGeometry, color: f3aColor }
-                        : null,
-                selectedRunway,
-            });
-
-        const bmpOk = await saveToSd(
-            bmpBlob,
-            SD_BITMAPS_PATH,
-            `${baseName}.bmp`,
-        );
-        // const jsonOk = await saveToSd(
-        //     jsonBlob,
-        //     SD_METADATA_PATH,
-        //     `${baseName}.json`,
-        // );
-        const luaOk = await saveToSd(
-            luaBlob,
-            SD_METADATA_PATH,
-            `${baseName}.lua`,
-        );
-        // const metaOk = await saveToSd(
-        //     metaBlob,
-        //     SD_METADATA_PATH,
-        //     `${baseName}_metadata.txt`,
-        // );
-
-        syncMessage = bmpOk && luaOk ? "Saved!" : "Save Failed";
-
-        setTimeout(() => {
-            syncMessage = "Export to folder";
-        }, 1800);
-    }
     function handleLoadProject(event) {
         const p = event.detail?.project;
         if (!p) return;
@@ -1076,92 +808,33 @@
                 rtl={true}
             />
 
-            <div class="action-controls">
-                {#if supportsSdSync}
-                    <div class="sync-group">
-                        <button class="ok" on:click={handleSync}
-                            >{syncMessage}</button
-                        >
-                        {#if isSdLinked && sdHandle}
-                            <button
-                                type="button"
-                                class="sd-status-link"
-                                on:click={linkSdCard}
-                                title="Change the folder to save to"
-                            >
-                                📁 {sdHandle.name} (change)
-                            </button>
-                        {/if}
-                    </div>
-                {/if}
-                <button class="ghost" on:click={handleDownloadZip}
-                    >Download ZIP</button
-                >
-            </div>
+            <ExportControls
+                {map}
+                projectSnapshot={{
+                    mapTitle,
+                    mapViewport,
+                    mapWidth,
+                    mapHeight,
+                    bounds,
+                    rotation,
+                    zoom,
+                    mapType,
+                    center,
+                    homePosition,
+                    f3aZoneVisible: isF3AZoneVisible,
+                    f3aRotation,
+                    f3aBaseDistance,
+                    f3aColor,
+                    f3aOverlay:
+                        isF3AZoneVisible && f3aZoneGeometry
+                            ? { geometry: f3aZoneGeometry, color: f3aColor }
+                            : null,
+                    selectedRunway,
+                }}
+            />
         </div>
 
-        <button
-            class="bounds-info bounds-info-toggle"
-            class:bounds-info-static={rotation !== 0}
-            on:click={() => {
-                if (rotation === 0) isBoundsOpen = !isBoundsOpen;
-            }}
-        >
-            <span>
-                {#if rotation !== 0}
-                    ⓘ This map is only compatible with <a
-                        href={WIDGET_URL}
-                        target="_blank"
-                        rel="noopener noreferrer">{WIDGET_NAME}</a
-                    > widget. Ethos standard widget requires non rotated map.
-                {:else}
-                    It's easier to use <a
-                        href={WIDGET_URL}
-                        target="_blank"
-                        rel="noopener noreferrer">{WIDGET_NAME}</a
-                    >. But click here to see the Ethos standard widget settings.
-                {/if}
-            </span>
-            <span class="bounds-accordion-icon" class:hidden={rotation !== 0}
-                >{isBoundsOpen ? "▲" : "▼"}</span
-            >
-        </button>
-        {#if isBoundsOpen && rotation === 0}
-            <div class="bounds-grid">
-                <div class="bounds-header">
-                    <h3 class="bounds-title">Ethos GPS Map Widget Settings</h3>
-                    <span class="bounds-save-hint"
-                        >ⓘ map should be saved in the /bitmaps/gps folder</span
-                    >
-                </div>
-                <div class="bounds-latlon">
-                    <div class="bounds-row">
-                        <span class="bounds-label">Latitude</span>
-                        <div class="bounds-values">
-                            <span class="bounds-val"
-                                >{toDms(bounds.north, true)}</span
-                            >
-                            <span class="bounds-sep">-</span>
-                            <span class="bounds-val"
-                                >{toDms(bounds.south, true)}</span
-                            >
-                        </div>
-                    </div>
-                    <div class="bounds-row">
-                        <span class="bounds-label">Longitude</span>
-                        <div class="bounds-values">
-                            <span class="bounds-val"
-                                >{toDms(bounds.east, false)}</span
-                            >
-                            <span class="bounds-sep">-</span>
-                            <span class="bounds-val"
-                                >{toDms(bounds.west, false)}</span
-                            >
-                        </div>
-                    </div>
-                </div>
-            </div>
-        {/if}
+        <EthosBoundsDisplay {bounds} {rotation} />
     </section>
 
     <section class="workspace">
@@ -1257,182 +930,31 @@
             <SearchPanel {map} {mapWidth} />
         </div>
 
-        <aside class="panel guide">
-            <section class="home-panel">
-                <h2>Reference Position</h2>
-                {#if homePosition}
-                    <p class="home-coords">
-                        🔒 {toDms(homePosition.lat, true)}, {toDms(
-                            homePosition.lng,
-                            false,
-                        )}
-                    </p>
-                {:else}
-                    <p>
-                        Lock the crosshair to the current center and keep it
-                        pinned while moving the map.
-                    </p>
-                {/if}
-                <div class="home-actions">
-                    {#if homePosition}
-                        <button class="warn" on:click={clearHomePosition}
-                            >Clear Reference</button
-                        >
-                    {:else}
-                        <button class="ok" on:click={setHomePosition}
-                            >Set Reference Position</button
-                        >
-                    {/if}
-                </div>
-            </section>
-
-            <section
-                class="runway-panel"
-                on:wheel={handleRunwayWheel}
-                class:with-f3a={homePosition}
-            >
-                <div class="runway-title-row">
-                    <h2>Runway</h2>
-                    {#if selectedRunway}
-                        <button
-                            class="runway-edit-btn"
-                            class:active={isRunwayEditActive}
-                            on:click={toggleRunwayEdit}>Edit</button
-                        >
-                    {/if}
-                </div>
-                <p class="runway-status">
-                    {#if !selectedRunway}
-                        {runwayStatus}
-                    {:else if $isIOS}
-                        <button
-                            type="button"
-                            class="ghost runway-step-btn runway-step-btn-left"
-                            on:click={() => rotateSelectedRunway(-0.1)}
-                        >
-                            ⟲ 0.1°
-                        </button>
-                        <span
-                            class="runway-bearing"
-                            on:wheel={handleRunwayHeadingWheel}
-                            >RWY {normalizeBearing(
-                                selectedRunway.heading,
-                            ).toFixed(1)}°
-                            <MouseWheelIcon size={18} /></span
-                        >
-                        <button
-                            type="button"
-                            class="ghost runway-step-btn runway-step-btn-right"
-                            on:click={() => rotateSelectedRunway(0.1)}
-                        >
-                            0.1° ⟳
-                        </button>
-                    {:else}
-                        <span
-                            class="runway-bearing"
-                            on:wheel={handleRunwayHeadingWheel}
-                            >RWY {normalizeBearing(
-                                selectedRunway.heading,
-                            ).toFixed(1)}°
-                            <MouseWheelIcon size={18} /></span
-                        >
-                    {/if}
-                </p>
-                <div class="home-actions runway-actions">
-                    <button
-                        class={isRunwayPickActive || selectedRunway
-                            ? "warn"
-                            : "ghost"}
-                        on:click={isRunwayPickActive
-                            ? cancelRunwayPick
-                            : selectedRunway
-                              ? clearRunwaySelection
-                              : startRunwayPick}
-                        disabled={!map}
-                        >{isRunwayPickActive
-                            ? "Cancel Pick"
-                            : selectedRunway
-                              ? "Remove runway"
-                              : "Pick Ends"}</button
-                    >
-                </div>
-            </section>
-
-            {#if homePosition}
-                <section class="f3a-panel">
-                    <div class="f3a-title-row">
-                        <h2>F3A Zone</h2>
-                        {#if runwayDirs}
-                            <span class="runway-perp-indicator">
-                                <span class="rpi-sym">⊥</span>
-                                <span class="rpi-val"
-                                    >{runwayDirs.topLabel}</span
-                                >
-                                <span class="rpi-line"></span>
-                                <span class="rpi-sym">⊤</span>
-                                <span class="rpi-val"
-                                    >{runwayDirs.bottomLabel}</span
-                                >
-                            </span>
-                        {/if}
-                    </div>
-                    <p>
-                        Draw a 120° triangle from the reference position with
-                        the base centered {Math.max(
-                            1,
-                            Number(f3aBaseDistance) || 150,
-                        ).toFixed(0)}m away.
-                    </p>
-                    <div class="home-actions">
-                        <button
-                            class={isF3AZoneVisible ? "warn" : "ok"}
-                            on:click={toggleF3AZone}
-                            >{isF3AZoneVisible
-                                ? "Remove Zone"
-                                : "Show Zone"}</button
-                        >
-                    </div>
-                    <label class="field zone-rotation-field">
-                        <RotationSlider
-                            label="Rotation"
-                            bind:value={f3aRotation}
-                            disabled={!isF3AZoneVisible}
-                            onReset={resetF3ARotation}
-                            inlineLabel={false}
-                            horizontalSliderWidth={110}
-                            horizontalWrap={false}
-                            forceStepButtonsOnTouch={true}
-                            twoLineSteps={true}
-                        />
-                    </label>
-                    <div class="zone-dist-color-row">
-                        <label class="field zone-field">
-                            <span>Base Distance (m)</span>
-                            <input
-                                type="number"
-                                min="1"
-                                step="1"
-                                bind:value={f3aBaseDistance}
-                            />
-                        </label>
-                        <label class="field zone-field">
-                            <span>Zone Color</span>
-                            <div class="color-row">
-                                <input type="color" bind:value={f3aColor} />
-                                {#if f3aColor !== f3aDefaultColor}
-                                    <button
-                                        class="reset-color"
-                                        on:click={() =>
-                                            (f3aColor = f3aDefaultColor)}
-                                        >reset</button
-                                    >
-                                {/if}
-                            </div>
-                        </label>
-                    </div>
-                </section>
-            {/if}
-        </aside>
+        <ToolsSidebar
+            {homePosition}
+            {isF3AZoneVisible}
+            bind:f3aRotation
+            bind:f3aBaseDistance
+            bind:f3aColor
+            {runwayDirs}
+            {selectedRunway}
+            {isRunwayPickActive}
+            {isRunwayEditActive}
+            {runwayStatus}
+            isIOS={$isIOS}
+            mapReady={!!map}
+            on:sethome={setHomePosition}
+            on:clearhome={clearHomePosition}
+            on:togglef3a={toggleF3AZone}
+            on:resetf3arotation={resetF3ARotation}
+            on:wheel={(e) => handleRunwayWheel(e.detail)}
+            on:headingwheel={(e) => handleRunwayHeadingWheel(e.detail)}
+            on:toggleedit={toggleRunwayEdit}
+            on:rotate={(e) => rotateSelectedRunway(e.detail)}
+            on:startpick={startRunwayPick}
+            on:cancelpick={cancelRunwayPick}
+            on:clear={clearRunwaySelection}
+        />
     </section>
 </div>
 
@@ -1559,165 +1081,6 @@
         justify-content: space-between;
         align-items: center;
         gap: 12px;
-    }
-
-    .action-controls {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .sync-group {
-        position: relative;
-    }
-
-    .sync-group > .ok {
-        width: 130px;
-    }
-
-    .sd-status-link {
-        position: absolute;
-        top: calc(100% + 3px);
-        left: 0;
-        padding: 0 0 0 10px;
-        border: 0;
-        min-height: 0;
-        background: transparent;
-        color: #a2b4bc;
-        font-family: "Space Mono", monospace;
-        font-size: 0.72rem;
-        font-weight: 400;
-        letter-spacing: 0.02em;
-        text-decoration: underline;
-        text-underline-offset: 2px;
-        cursor: pointer;
-        white-space: nowrap;
-    }
-
-    .sd-status-link:hover {
-        color: #c2d2d9;
-    }
-
-    .bounds-grid {
-        display: grid;
-        gap: 0;
-        background: rgba(4, 9, 12, 0.6);
-        border: 1px solid #304750;
-        border-radius: 8px;
-        overflow: hidden;
-        font-family: "Space Mono", monospace;
-    }
-
-    .bounds-latlon {
-        max-width: 784px;
-    }
-
-    .bounds-title {
-        margin: 0;
-        padding: 7px 12px;
-        font-size: 0.8rem;
-        color: #96adbc;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-    }
-
-    .bounds-header {
-        display: flex;
-        align-items: center;
-        border-bottom: 1px solid #304750;
-    }
-
-    .bounds-save-hint {
-        font-family: "Space Mono", monospace;
-        font-size: 0.75rem;
-        color: #96adbc;
-        padding: 7px 12px;
-    }
-
-    .bounds-info {
-        margin: 0;
-        padding: 8px 12px;
-        color: #7ab8cc;
-        font-family: "Space Mono", monospace;
-        font-size: 0.75rem;
-    }
-
-    .bounds-info-toggle {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        width: 100%;
-        text-align: left;
-        background: none;
-        border: none;
-        border-radius: 0;
-        color: #7ab8cc;
-        cursor: pointer;
-        font-family: "Space Mono", monospace;
-        font-size: 0.75rem;
-        padding: 8px 12px;
-    }
-
-    .bounds-info-toggle:hover:not(.bounds-info-static) {
-        color: #a8d8eb;
-        background: rgba(255, 255, 255, 0.04);
-    }
-
-    .bounds-info-static {
-        cursor: default;
-        color: #7ab8cc;
-    }
-
-    .bounds-accordion-icon.hidden {
-        visibility: hidden;
-    }
-
-    .bounds-accordion-icon {
-        font-size: 0.65rem;
-        opacity: 0.7;
-        flex-shrink: 0;
-    }
-
-    .bounds-row {
-        display: flex;
-        align-items: center;
-        padding: 6px 12px;
-        gap: 8px;
-        border-top: 1px solid #1e3038;
-    }
-
-    .bounds-label {
-        color: #d0dde4;
-        font-size: 0.85rem;
-        min-width: 80px;
-        flex-shrink: 0;
-    }
-
-    .bounds-values {
-        display: grid;
-        grid-template-columns: 1fr auto 1fr;
-        align-items: center;
-        gap: 6px;
-        margin-left: auto;
-    }
-
-    .bounds-val {
-        background: #1a2830;
-        border: 1px solid #2f4b51;
-        border-radius: 4px;
-        padding: 3px 8px;
-        color: #e8f2ea;
-        font-size: 0.8rem;
-        white-space: nowrap;
-        text-align: right;
-        min-width: 18ch;
-    }
-
-    .bounds-sep {
-        color: #6a8a96;
-        font-size: 0.8rem;
     }
 
     .workspace {
@@ -1873,214 +1236,6 @@
     .coords-lock {
         margin-right: 4px;
         filter: drop-shadow(0 0 4px rgba(138, 207, 53, 0.45));
-    }
-
-    .guide {
-        width: 308px;
-        display: grid;
-        gap: 8px;
-    }
-
-    .guide h2 {
-        margin: 0;
-        color: #96d547;
-        font-size: 1rem;
-    }
-
-    .guide p {
-        margin: 0;
-        color: #cad4d9;
-        font-size: 0.9rem;
-    }
-
-    .home-panel {
-        display: grid;
-        gap: 8px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid #2e434a;
-    }
-
-    .runway-panel {
-        display: grid;
-        gap: 8px;
-        padding-bottom: 8px;
-    }
-
-    .runway-panel.with-f3a {
-        border-bottom: 1px solid #2e434a;
-    }
-    .runway-title-row,
-    .f3a-title-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .runway-title-row h2,
-    .f3a-title-row h2 {
-        margin: 0;
-    }
-
-    .runway-status {
-        color: #cad4d9;
-        font-size: 0.86rem;
-        min-height: 24px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        flex-wrap: wrap;
-    }
-
-    .runway-bearing {
-        min-width: 52px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 2px;
-        font-family: "Space Mono", monospace;
-        color: #9de44d;
-        cursor: ns-resize;
-        user-select: none;
-        touch-action: manipulation;
-        -webkit-user-select: none;
-        -webkit-touch-callout: none;
-    }
-
-    .runway-bearing :global(svg) {
-        width: 18px;
-        height: 18px;
-        flex: 0 0 18px;
-        opacity: 0.75;
-        user-select: none;
-        filter: drop-shadow(0 0 4px rgba(157, 228, 77, 0.35));
-    }
-
-    .runway-step-btn {
-        min-height: 32px;
-        padding: 4px 8px;
-        font-size: 0.75rem;
-        white-space: nowrap;
-        touch-action: manipulation;
-        -webkit-user-select: none;
-        -webkit-touch-callout: none;
-        user-select: none;
-    }
-
-    .runway-edit-btn {
-        color: #b8f971;
-        background: rgba(4, 8, 10, 0.8);
-        border: 2px solid #8acf35;
-        border-radius: 7px;
-        font-family: "Space Mono", monospace;
-        font-weight: 700;
-        font-size: 0.74rem;
-        padding: 3px 9px;
-        min-height: unset;
-        cursor: pointer;
-    }
-
-    .runway-edit-btn.active {
-        background: linear-gradient(135deg, #7fb729, #4a8f26);
-        border-color: #90db35;
-        color: #092409;
-    }
-
-    .runway-perp-indicator {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        align-items: center;
-        column-gap: 4px;
-        row-gap: 2px;
-        flex-shrink: 0;
-        font-family: "Space Mono", monospace;
-        font-size: 0.6rem;
-        color: #9de44d;
-        line-height: 1;
-    }
-
-    .rpi-sym {
-        opacity: 0.7;
-        font-size: 0.65rem;
-        text-align: left;
-    }
-
-    .rpi-val {
-        text-align: right;
-        white-space: nowrap;
-    }
-
-    .rpi-line {
-        grid-column: 1 / -1;
-        height: 1px;
-        border-top: 1px dashed rgba(157, 228, 77, 0.6);
-    }
-
-    .runway-actions {
-        align-items: center;
-    }
-
-    .mini-btn {
-        min-height: 32px;
-        padding: 5px 8px;
-        font-size: 0.78rem;
-    }
-
-    .f3a-panel {
-        display: grid;
-        gap: 8px;
-    }
-
-    .zone-dist-color-row {
-        display: flex;
-        gap: 10px;
-        align-items: flex-end;
-        flex-wrap: nowrap;
-    }
-
-    .zone-dist-color-row .zone-field {
-        min-width: 0;
-        flex: 1 1 auto;
-    }
-
-    .zone-dist-color-row .zone-field:last-child {
-        flex: 0 0 auto;
-    }
-
-    .zone-rotation-field {
-        min-width: unset;
-    }
-
-    .color-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .reset-color {
-        all: unset;
-        color: #6a9cbc;
-        font-family: "Space Mono", monospace;
-        font-size: 0.65rem;
-        text-decoration: underline;
-        text-underline-offset: 2px;
-        cursor: pointer;
-    }
-
-    .reset-color:hover {
-        color: #a8cfe0;
-    }
-
-    .home-actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .home-coords {
-        color: #a9d66c;
-        font-family: "Space Mono", monospace;
-        font-size: 0.82rem;
-        padding-bottom: 2px;
     }
 
     :global(.maplibregl-ctrl-bottom-right .maplibregl-ctrl-scale) {
