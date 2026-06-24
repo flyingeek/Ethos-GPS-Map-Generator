@@ -4,23 +4,17 @@
 
     /**
      * @typedef {Object} Props
-     * @property {boolean} [isIOS]
      * @property {boolean} [mapReady]
      * @property {(() => void) | null} [onsethome]
      * @property {(() => void) | null} [onstartpick]
      */
 
     /** @type {Props} */
-    let {
-        isIOS = false,
-        mapReady = false,
-        onsethome = null,
-        onstartpick = null,
-    } = $props();
+    let { mapReady = false, onsethome = null, onstartpick = null } = $props();
 </script>
 
 <aside class="panel guide">
-    <RunwayTools {isIOS} {mapReady} {onstartpick} />
+    <RunwayTools {mapReady} {onstartpick} />
     <F3ATools {onsethome} />
 </aside>
 

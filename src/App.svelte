@@ -1,6 +1,6 @@
 <script>
     import { onMount, setContext } from "svelte";
-    import { isIOS } from "./lib/deviceInfo.js";
+    import { isIOS } from "./lib/deviceInfo.svelte.js";
     import { buildRasterStyle, MAP_TYPES } from "./mapStyles.js";
     import { normalizeAngle, calculateMeasureState } from "./lib/geoUtils.js";
     import {
@@ -700,7 +700,6 @@
         </div>
 
         <ToolsSidebar
-            isIOS={$isIOS}
             mapReady={!!map}
             onsethome={setHomePosition}
             onstartpick={startRunwayPick}

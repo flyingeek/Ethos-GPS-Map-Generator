@@ -3,7 +3,7 @@
 
     import { normalizeAngle } from "../lib/geoUtils.js";
     import MouseWheelIcon from "./MouseWheelIcon.svelte";
-    import { isIOS } from "../lib/deviceInfo.js";
+    import { isIOS } from "../lib/deviceInfo.svelte.js";
 
     /**
      * @typedef {Object} Props
@@ -41,9 +41,9 @@
         twoLineSteps = false,
     } = $props();
 
-    let effectiveStepSize = $derived($isIOS ? 0.1 : stepSize);
+    let effectiveStepSize = $derived(isIOS ? 0.1 : stepSize);
     let effectiveShowStepButtons = $derived(
-        showStepButtons || (forceStepButtonsOnTouch && $isIOS),
+        showStepButtons || (forceStepButtonsOnTouch && isIOS),
     );
 
     function handleStep(delta) {
@@ -78,7 +78,7 @@
     let autoRepeatActive = false;
 
     function startAutoRepeat(delta) {
-        if (!$isIOS) return;
+        if (!isIOS) return;
         autoRepeatActive = false;
         autoRepeatTimer = setTimeout(() => {
             autoRepeatActive = true;
