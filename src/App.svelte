@@ -195,7 +195,7 @@
                     bearing: appState.rotation,
                     preserveDrawingBuffer: true,
                     attributionControl: false,
-                    maxZoom: 21.9,
+                    maxZoom: 20,
                 });
 
                 // One-time setup: disable rotate/pitch gestures
@@ -364,7 +364,7 @@
         if (!map) return;
         const c = map.getCenter();
         center = { lat: c.lat, lng: c.lng };
-        zoom = Number(map.getZoom().toFixed(1));
+        zoom = map.getZoom();
     }
 
     function rotateStep(step) {
