@@ -51,11 +51,52 @@
     let center = $state({ lat: 44.71607983566827, lng: -0.7165001920591294 });
     let zoom = $state(14.7);
 
-    // Projected screen coordinates
-    let homeScreenPoint = $state(null);
-    let f3aZoneGeometry = $state(null);
-    let projectedRunway = $state(null);
-    let runwayPickStartScreen = $state(null);
+    // Map-projection version counter — increments on resize so $derived overlays
+    // recompute even when center/zoom/rotation did not change.
+    let mapVersion = $state(0);
+
+    // Projected screen coordinates — $derived.by so they auto-update whenever
+    // the map viewport (center, zoom, rotation, size) or the relevant appState
+    // properties change. Reading center/zoom/appState.rotation/mapVersion as
+    // reactive dependencies ensures recomputation after every map event.
+    let homeScreenPoint = $derived.by(() => {
+        if (!map || !appState.homePosition) return null;
+        center;
+        zoom;
+        appState.rotation;
+        mapVersion;
+        return projectLngLat(map, appState.homePosition);
+    });
+    let f3aZoneGeometry = $derived.by(() => {
+        if (!map) return null;
+        center;
+        zoom;
+        appState.rotation;
+        mapVersion;
+        return projectF3AZoneGeometry(
+            map,
+            appState.homePosition,
+            appState.f3aRotation,
+            appState.f3aBaseDistance,
+            appState.isF3AZoneVisible,
+        );
+    });
+    let projectedRunway = $derived.by(() => {
+        if (!map) return null;
+        center;
+        zoom;
+        appState.rotation;
+        mapVersion;
+        return projectRunway(map, appState.selectedRunway);
+    });
+    let runwayPickStartScreen = $derived.by(() => {
+        if (!map || !appState.runwayPickStart) return null;
+        center;
+        zoom;
+        appState.rotation;
+        mapVersion;
+        return projectLngLat(map, appState.runwayPickStart);
+    });
 
     // Measure tool (ephemeral, needs map)
     let isMeasureActive = $state(false);
@@ -77,7 +118,6 @@
         if (map) {
             queueMicrotask(() => {
                 withMapSync(() => map.resize());
-                refreshProjectedOverlays();
             });
         }
     });
@@ -97,7 +137,6 @@
             map.once("styledata", () => {
                 withMapSync(() => map.jumpTo(savedMapState));
                 refreshBounds();
-                refreshProjectedOverlays();
             });
         });
     });
@@ -143,12 +182,6 @@
             map.scrollZoom.enable();
             map.doubleClickZoom.enable();
         }
-    });
-
-    // Refresh projected overlays when overlay-relevant state changes
-    $effect(() => {
-        if (!map) return;
-        refreshProjectedOverlays();
     });
 
     // Stop measure tool when home position is cleared (but not when measure is
@@ -206,13 +239,11 @@
                 map.on("load", () => {
                     refreshBounds();
                     refreshCenterAndZoom();
-                    refreshProjectedOverlays();
                 });
 
                 map.on("move", () => {
                     refreshCenterAndZoom();
                     refreshBounds();
-                    refreshProjectedOverlays();
                     if (isMeasureActive) {
                         if (measureCursorPoint) {
                             const hoverLngLat = map.unproject([
@@ -231,7 +262,6 @@
                 map.on("zoom", () => {
                     refreshCenterAndZoom();
                     refreshBounds();
-                    refreshProjectedOverlays();
                     if (isMeasureActive) {
                         updateMeasureLine();
                     }
@@ -244,7 +274,6 @@
                             appState.rotation = newBearing;
                         }
                     }
-                    refreshProjectedOverlays();
                     if (isMeasureActive) {
                         updateMeasureLine();
                     }
@@ -320,6 +349,10 @@
                             easing: (t) => t * (2 - t),
                         });
                     }
+                });
+
+                map.on("resize", () => {
+                    mapVersion++;
                 });
             } catch (error) {
                 console.error("MapLibre initialization failed:", error);
@@ -412,26 +445,10 @@
         measureTargetScreen = measureCursorPoint ?? projectLngLat(map, target);
     }
 
-    function refreshProjectedOverlays() {
-        homeScreenPoint = projectLngLat(map, appState.homePosition);
-        f3aZoneGeometry = projectF3AZoneGeometry(
-            map,
-            appState.homePosition,
-            appState.f3aRotation,
-            appState.f3aBaseDistance,
-            appState.isF3AZoneVisible,
-        );
-        projectedRunway = projectRunway(map, appState.selectedRunway);
-        runwayPickStartScreen = appState.runwayPickStart
-            ? projectLngLat(map, appState.runwayPickStart)
-            : null;
-    }
-
     function setHomePosition() {
         if (!map) return;
         const c = map.getCenter();
         appState.setHomePosition(c.lat, c.lng);
-        refreshProjectedOverlays();
         if (isMeasureActive) {
             measureStart = appState.homePosition;
             updateMeasureLine();
@@ -442,7 +459,6 @@
         if (!map) return;
         if (isMeasureActive) stopMeasure();
         appState.startRunwayPick();
-        refreshProjectedOverlays();
     }
 
     function handleEndpointDrag({ endpoint, clientX, clientY }) {
@@ -472,7 +488,6 @@
             const start = map.unproject([clickedPoint.x, clickedPoint.y]);
             appState.runwayPickStart = { lat: start.lat, lng: start.lng };
             appState.runwayStatus = "Now click the other runway end.";
-            refreshProjectedOverlays();
             return;
         }
 
@@ -486,7 +501,6 @@
         );
         appState.isRunwayPickActive = false;
         appState.runwayPickStart = null;
-        refreshProjectedOverlays();
     }
 
     function handleLoadProject({ project }) {
@@ -501,7 +515,6 @@
                 zoom: p.zoom,
                 bearing: p.rotation,
             });
-            refreshProjectedOverlays();
         } else {
             center = { lat: p.center.lat, lng: p.center.lng };
             zoom = p.zoom;

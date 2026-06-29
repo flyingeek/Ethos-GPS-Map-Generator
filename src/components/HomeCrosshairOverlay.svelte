@@ -24,26 +24,31 @@
     let ry = $derived(snapH ? mapHeight / 2 : screenPoint?.y);
 
     let effectTimeout;
-    let showSnapEffect = $state(false);
+    // snapFlashActive is set to true by a map event (this $effect) and cleared
+    // asynchronously by the timeout callback — the async write avoids a same-tick
+    // read/write cycle. The synchronous false-branch write is safe because
+    // snapFlashActive is never read inside this effect.
+    let snapFlashActive = $state(false);
 
     $effect(() => {
-        // Depend on screenPoint directly to reset timeout continuously while moving inside the zone
+        // Re-run whenever screenPoint changes (to reset the timer while dragging).
         const _trigger = screenPoint;
         const isSnapped = snapV || snapH;
 
+        clearTimeout(effectTimeout);
         if (isSnapped) {
-            showSnapEffect = true;
-            clearTimeout(effectTimeout);
+            snapFlashActive = true;
             effectTimeout = setTimeout(() => {
-                showSnapEffect = false;
+                snapFlashActive = false;
             }, 2000);
         } else {
-            showSnapEffect = false;
-            clearTimeout(effectTimeout);
+            snapFlashActive = false;
         }
 
         return () => clearTimeout(effectTimeout);
     });
+
+    let showSnapEffect = $derived(snapFlashActive && (snapV || snapH));
 </script>
 
 {#if screenPoint}

@@ -6,7 +6,6 @@
     } from "../lib/exportActions.js";
     import { cleanBaseName } from "../lib/exportBlobs.js";
 
-
     const SD_BITMAPS_PATH = "";
     const SD_METADATA_PATH = "";
 
@@ -17,15 +16,16 @@
      * @typedef {Object} Props
      * @property {any} [projectSnapshot]
      * @property {any} [map]
-     * @property {boolean} [supportsSdSync]
      */
 
     /** @type {Props} */
-    let { projectSnapshot = {}, map = null, supportsSdSync = $bindable(false) } = $props();
+    let { projectSnapshot = {}, map = null } = $props();
+
+    // Static capability check — File System Access API is available at load time
+    // and does not change during the session.
+    const supportsSdSync = typeof window.showDirectoryPicker === "function";
 
     onMount(() => {
-        supportsSdSync = typeof window.showDirectoryPicker === "function";
-
         const watchdog = setInterval(async () => {
             if (!sdHandle) {
                 isSdLinked = false;
