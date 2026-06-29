@@ -30,22 +30,6 @@
     let mapViewport = $state(null);
     let maplibreglApi = $state(null);
 
-    // Guard against reactive feedback loops: imperative map mutations
-    // (setBearing/setStyle/easeTo/resize) synchronously emit move/zoom/rotate
-    // events whose handlers write back to $state. While this flag is set, those
-    // handlers skip their reactive write-backs so effects don't read+write the
-    // same state and trip Svelte's effect_update_depth_exceeded.
-    let applyingMapSync = false;
-    function withMapSync(fn) {
-        const previous = applyingMapSync;
-        applyingMapSync = true;
-        try {
-            fn();
-        } finally {
-            applyingMapSync = previous;
-        }
-    }
-
     // Map-derived state (owned by map events)
     let bounds = $state({ north: 0, south: 0, west: 0, east: 0 });
     let center = $state({ lat: 44.71607983566827, lng: -0.7165001920591294 });
@@ -117,7 +101,7 @@
         mapViewport.style.height = `${appState.mapHeight}px`;
         if (map) {
             queueMicrotask(() => {
-                withMapSync(() => map.resize());
+                map.resize();
             });
         }
     });
@@ -133,9 +117,9 @@
                 bearing: map.getBearing(),
                 pitch: map.getPitch(),
             };
-            withMapSync(() => map.setStyle(buildRasterStyle(mapType)));
+            map.setStyle(buildRasterStyle(mapType));
             map.once("styledata", () => {
-                withMapSync(() => map.jumpTo(savedMapState));
+                map.jumpTo(savedMapState);
                 refreshBounds();
             });
         });
@@ -147,7 +131,7 @@
         const rotation = appState.rotation;
         untrack(() => {
             if (Math.abs(map.getBearing() - rotation) > 0.05) {
-                withMapSync(() => map.setBearing(rotation));
+                map.setBearing(rotation);
             }
         });
     });
@@ -268,11 +252,9 @@
                 });
 
                 map.on("rotate", () => {
-                    if (!applyingMapSync) {
-                        const newBearing = Number(map.getBearing().toFixed(1));
-                        if (newBearing !== appState.rotation) {
-                            appState.rotation = newBearing;
-                        }
+                    const newBearing = Number(map.getBearing().toFixed(1));
+                    if (newBearing !== appState.rotation) {
+                        appState.rotation = newBearing;
                     }
                     if (isMeasureActive) {
                         updateMeasureLine();
