@@ -189,6 +189,31 @@ export class AppState {
         }
     }
 
+    // ── Serialise for export ─────────────────────────────────────────────────
+    toExportSnapshot({ map, mapViewport, center, zoom, bounds, f3aZoneGeometry }) {
+        return {
+            mapTitle: this.mapTitle,
+            mapViewport,
+            mapWidth: this.mapWidth,
+            mapHeight: this.mapHeight,
+            bounds,
+            rotation: this.rotation,
+            zoom,
+            mapType: this.mapType,
+            center,
+            homePosition: this.homePosition,
+            f3aZoneVisible: this.isF3AZoneVisible,
+            f3aRotation: this.f3aRotation,
+            f3aBaseDistance: this.f3aBaseDistance,
+            f3aColor: this.f3aColor,
+            f3aOverlay:
+                this.isF3AZoneVisible && f3aZoneGeometry
+                    ? { geometry: f3aZoneGeometry, color: this.f3aColor }
+                    : null,
+            selectedRunway: this.selectedRunway,
+        };
+    }
+
     // ── Serialise for save ───────────────────────────────────────────────────
     toSnapshot(center, zoom, bounds) {
         return {

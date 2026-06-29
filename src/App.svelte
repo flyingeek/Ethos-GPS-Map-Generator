@@ -606,30 +606,14 @@
 
             <ExportControls
                 {map}
-                projectSnapshot={{
-                    mapTitle: appState.mapTitle,
+                projectSnapshot={appState.toExportSnapshot({
+                    map,
                     mapViewport,
-                    mapWidth: appState.mapWidth,
-                    mapHeight: appState.mapHeight,
-                    bounds,
-                    rotation: appState.rotation,
-                    zoom,
-                    mapType: appState.mapType,
                     center,
-                    homePosition: appState.homePosition,
-                    f3aZoneVisible: appState.isF3AZoneVisible,
-                    f3aRotation: appState.f3aRotation,
-                    f3aBaseDistance: appState.f3aBaseDistance,
-                    f3aColor: appState.f3aColor,
-                    f3aOverlay:
-                        appState.isF3AZoneVisible && f3aZoneGeometry
-                            ? {
-                                  geometry: f3aZoneGeometry,
-                                  color: appState.f3aColor,
-                              }
-                            : null,
-                    selectedRunway: appState.selectedRunway,
-                }}
+                    zoom,
+                    bounds,
+                    f3aZoneGeometry,
+                })}
             />
         </div>
 
