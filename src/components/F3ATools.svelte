@@ -196,20 +196,6 @@
         border-top: 1px dashed rgba(157, 228, 77, 0.6);
     }
 
-    .field {
-        display: grid;
-        gap: 4px;
-        min-width: 170px;
-    }
-
-    .field > span {
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #8da0ab;
-        font-size: 0.7rem;
-        font-weight: 700;
-    }
-
     .zone-dist-color-row {
         display: flex;
         gap: 10px;
@@ -248,33 +234,5 @@
 
     .reset-color:hover {
         color: #a8cfe0;
-    }
-
-    input,
-    button {
-        border: 1px solid #2f4b51;
-        background: #0c171b;
-        color: #eff6f2;
-        border-radius: 7px;
-        padding: 8px 10px;
-        font: inherit;
-        min-height: 38px;
-    }
-
-    button {
-        cursor: pointer;
-        font-weight: 700;
-    }
-
-    button.ok {
-        background: linear-gradient(135deg, #7fb729, #4a8f26);
-        border-color: #90db35;
-        color: #092409;
-    }
-
-    button.warn {
-        background: linear-gradient(135deg, #d78931, #bc5f18);
-        border-color: #f5a454;
-        color: #fff9f0;
     }
 </style>

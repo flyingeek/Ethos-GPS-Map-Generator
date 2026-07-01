@@ -3,6 +3,27 @@
   line-height: 1.35;
   color: #f3f6f8;
   background: radial-gradient(circle at top right, #20312d 0%, #101719 38%, #090d0f 100%);
+
+  /* Shared design tokens (deduplicated across components) */
+  --font-mono: "Space Mono", monospace;
+  --radius-md: 7px;
+  --radius-lg: 12px;
+  --color-border: #2f4b51;
+  --color-border-ghost: #4a666f;
+  --color-bg-input: #0c171b;
+  --color-text-input: #eff6f2;
+  --color-label: #8da0ab;
+  --color-ok-start: #7fb729;
+  --color-ok-end: #4a8f26;
+  --color-ok-border: #90db35;
+  --color-ok-text: #092409;
+  --color-warn-start: #d78931;
+  --color-warn-end: #bc5f18;
+  --color-warn-border: #f5a454;
+  --color-warn-text: #fff9f0;
+  --color-panel-grad-start: rgba(18, 28, 31, 0.92);
+  --color-panel-grad-end: rgba(8, 14, 18, 0.95);
+  --color-panel-border: rgba(133, 184, 55, 0.36);
 }
 
 html {
@@ -25,4 +46,66 @@ body {
 
 a {
   color: inherit;
+}
+
+/* Shared component classes (deduplicated from component-local <style> blocks) */
+input,
+select,
+button {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-input);
+  color: var(--color-text-input);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  font: inherit;
+  min-height: 38px;
+}
+
+button {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button.ok {
+  background: linear-gradient(135deg, var(--color-ok-start), var(--color-ok-end));
+  border-color: var(--color-ok-border);
+  color: var(--color-ok-text);
+}
+
+button.warn {
+  background: linear-gradient(135deg, var(--color-warn-start), var(--color-warn-end));
+  border-color: var(--color-warn-border);
+  color: var(--color-warn-text);
+}
+
+button.ghost {
+  background: transparent;
+  border-color: var(--color-border-ghost);
+}
+
+.panel {
+  background: linear-gradient(165deg, var(--color-panel-grad-start), var(--color-panel-grad-end));
+  border: 1px solid var(--color-panel-border);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4);
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+  min-width: 170px;
+}
+
+.field > span {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-label);
+  font-size: 0.7rem;
+  font-weight: 700;
 }

@@ -762,18 +762,6 @@
         font-size: 0.8rem;
     }
 
-    .panel {
-        background: linear-gradient(
-            165deg,
-            rgba(18, 28, 31, 0.92),
-            rgba(8, 14, 18, 0.95)
-        );
-        border: 1px solid rgba(133, 184, 55, 0.36);
-        border-radius: 12px;
-        padding: 12px;
-        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4);
-    }
-
     .controls {
         display: grid;
         gap: 10px;
@@ -786,61 +774,8 @@
         gap: 10px;
     }
 
-    .field {
-        display: grid;
-        gap: 4px;
-        min-width: 170px;
-    }
-
     .field.mini {
         min-width: 90px;
-    }
-
-    .field > span {
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #8da0ab;
-        font-size: 0.7rem;
-        font-weight: 700;
-    }
-
-    input,
-    select,
-    button {
-        border: 1px solid #2f4b51;
-        background: #0c171b;
-        color: #eff6f2;
-        border-radius: 7px;
-        padding: 8px 10px;
-        font: inherit;
-        min-height: 38px;
-    }
-
-    button {
-        cursor: pointer;
-        font-weight: 700;
-    }
-
-    button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-
-    button.ok {
-        background: linear-gradient(135deg, #7fb729, #4a8f26);
-        border-color: #90db35;
-        color: #092409;
-    }
-
-    button.warn {
-        background: linear-gradient(135deg, #d78931, #bc5f18);
-        border-color: #f5a454;
-        color: #fff9f0;
-    }
-
-    button.ghost {
-        background: transparent;
-        border-color: #4a666f;
     }
 
     .rotate-row {

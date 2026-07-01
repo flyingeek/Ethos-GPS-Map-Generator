@@ -186,27 +186,4 @@
     .sd-status-link:hover {
         color: #c2d2d9;
     }
-
-    button {
-        border: 1px solid #2f4b51;
-        background: #0c171b;
-        color: #eff6f2;
-        border-radius: 7px;
-        padding: 8px 10px;
-        font: inherit;
-        min-height: 38px;
-        cursor: pointer;
-        font-weight: 700;
-    }
-
-    button.ok {
-        background: linear-gradient(135deg, #7fb729, #4a8f26);
-        border-color: #90db35;
-        color: #092409;
-    }
-
-    button.ghost {
-        background: transparent;
-        border-color: #4a666f;
-    }
 </style>

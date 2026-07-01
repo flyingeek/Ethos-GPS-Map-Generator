@@ -194,27 +194,4 @@
         gap: 8px;
         flex-wrap: wrap;
     }
-
-    button {
-        border: 1px solid #2f4b51;
-        background: #0c171b;
-        color: #eff6f2;
-        border-radius: 7px;
-        padding: 8px 10px;
-        font: inherit;
-        min-height: 38px;
-        cursor: pointer;
-        font-weight: 700;
-    }
-
-    button.warn {
-        background: linear-gradient(135deg, #d78931, #bc5f18);
-        border-color: #f5a454;
-        color: #fff9f0;
-    }
-
-    button.ghost {
-        background: transparent;
-        border-color: #4a666f;
-    }
 </style>

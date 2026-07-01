@@ -326,17 +326,6 @@
         font-weight: 700;
     }
 
-    .project-select,
-    button {
-        border: 1px solid #2f4b51;
-        background: #0c171b;
-        color: #eff6f2;
-        border-radius: 7px;
-        padding: 8px 10px;
-        font: inherit;
-        min-height: 38px;
-    }
-
     .project-select {
         min-width: 160px;
         max-width: 220px;
@@ -355,27 +344,6 @@
         100% {
             box-shadow: 0 0 0 8px rgba(144, 219, 53, 0);
         }
-    }
-
-    button {
-        cursor: pointer;
-        font-weight: 700;
-    }
-
-    button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-
-    button.ok {
-        background: linear-gradient(135deg, #7fb729, #4a8f26);
-        border-color: #90db35;
-        color: #092409;
-    }
-
-    button.ghost {
-        background: transparent;
-        border-color: #4a666f;
     }
 
     .del-btn {
